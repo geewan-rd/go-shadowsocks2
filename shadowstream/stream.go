@@ -162,10 +162,57 @@ func (c *conn) Write(b []byte) (int, error) {
 }
 
 func (c *conn) ReadFrom(r io.Reader) (int64, error) {
+	var (
+		n   int64
+		err error
+	)
+	iv := make([]byte, c.IVSize())
 	if c.w == nil {
-		if err := c.initWriter(); err != nil {
+		var buffer bytes.Buffer
+		buf := make([]byte, bufSize)
+		iv = buf[:c.IVSize()]
+		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 			return 0, err
 		}
+		buffer.Write(iv)
+		c.w = &writer{Writer: c.Conn, Stream: c.Encrypter(iv), buf: buf}
+		buff := c.w.buf
+		nr, err := r.Read(buff)
+		if err != nil {
+			return 0, err
+		}
+		if nr > 0 {
+			n += int64(nr)
+			buff = buff[:nr]
+			c.w.XORKeyStream(buff, buff)
+			buffer.Write(buff)
+			_, err := c.w.Writer.Write(buffer.Bytes())
+			if err != nil {
+				return 0, err
+			}
+		}
 	}
-	return c.w.ReadFrom(r)
+
+	for {
+		buf := c.w.buf
+		nr, er := r.Read(buf)
+		if nr > 0 {
+			n += int64(nr)
+			buf = buf[:nr]
+			c.w.XORKeyStream(buf, buf)
+			_, ew := c.w.Writer.Write(buf)
+			if ew != nil {
+				err = ew
+				return n, err
+			}
+		}
+
+		if er != nil {
+			if er != io.EOF { // ignore EOF as per io.ReaderFrom contract
+				err = er
+			}
+			break
+		}
+	}
+	return n, err
 }
