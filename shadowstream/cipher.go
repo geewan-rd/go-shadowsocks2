@@ -53,6 +53,26 @@ func AESCFB(key []byte) (Cipher, error) {
 }
 
 // IETF-variant of chacha20
+type chacha20key []byte
+
+func (k chacha20key) IVSize() int                       { return chacha.NonceSize }
+func (k chacha20key) Decrypter(iv []byte) cipher.Stream { return k.Encrypter(iv) }
+func (k chacha20key) Encrypter(iv []byte) cipher.Stream {
+	ciph, err := chacha20.NewCipher(iv, k)
+	if err != nil {
+		panic(err) // should never happen
+	}
+	return ciph
+}
+
+func Chacha20(key []byte) (Cipher, error) {
+	if len(key) != chacha.KeySize {
+		return nil, KeySizeError(chacha.KeySize)
+	}
+	return chacha20ietfkey(key), nil
+}
+
+// IETF-variant of chacha20
 type chacha20ietfkey []byte
 
 func (k chacha20ietfkey) IVSize() int                       { return chacha.INonceSize }
