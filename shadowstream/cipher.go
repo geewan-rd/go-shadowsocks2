@@ -52,7 +52,7 @@ func AESCFB(key []byte) (Cipher, error) {
 	return &cfbStream{blk}, nil
 }
 
-// IETF-variant of chacha20
+// chacha20
 type chacha20key []byte
 
 func (k chacha20key) IVSize() int                       { return chacha.NonceSize }
@@ -69,7 +69,7 @@ func Chacha20(key []byte) (Cipher, error) {
 	if len(key) != chacha.KeySize {
 		return nil, KeySizeError(chacha.KeySize)
 	}
-	return chacha20ietfkey(key), nil
+	return chacha20key(key), nil
 }
 
 // IETF-variant of chacha20
