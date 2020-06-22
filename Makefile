@@ -37,10 +37,10 @@ build-android:
 	rm -rf output/android
 	mkdir -p output/android
 	gomobile bind -target android -o output/android/shadowsocks.aar github.com/shadowsocks/go-shadowsocks2/clientlib
-	zip -r output/shadowsocks_android_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip output/android
+	cd output && zip -r shadowsocks_android_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip android
 	# gomobile bind -target android -o output/android/tun2socks.aar github.com/geewan-rd/transocks-electron/accel/gotun2socks
 
 build-ios:
 	mkdir -p output/ios
 	gomobile bind -target ios -o output/ios/shadowsocks.framework github.com/shadowsocks/go-shadowsocks2/clientlib
-	zip -r output/shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip output/ios
+	zip -r shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip ios
