@@ -37,6 +37,7 @@ var client *Client
 var localIP string
 var tcpConnecter = &TCPConnecter{}
 
+// SetlogOut 设定日志输出到哪个文件
 func SetlogOut(path string) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -47,6 +48,7 @@ func SetlogOut(path string) error {
 	return nil
 }
 
+// FinishLog 停止记录日志，关闭对应文件
 func FinishLog() error {
 	if logWriter != nil {
 		return logWriter.Close()
@@ -65,6 +67,7 @@ func SetLocalIP(ip string) error {
 	return nil
 }
 
+// StartTCPUDP 启动SS(TCP和UDP)
 func StartTCPUDP(server string, serverPort int, method string, password string, localPort int, verbose bool) error {
 	config.Verbose = verbose
 	var key []byte
@@ -105,6 +108,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	return nil
 }
 
+// StopTCPUDP 停止SS
 func StopTCPUDP() (err error) {
 	stat.Reset()
 	if client != nil {
@@ -116,6 +120,7 @@ func StopTCPUDP() (err error) {
 	return
 }
 
+// StartWebsocket 启动SSW
 func StartWebsocket(server, url, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
 	config.Verbose = verbose
 	var key []byte
@@ -141,6 +146,7 @@ func StartWebsocket(server, url, username string, serverPort int, method string,
 	return client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
 }
 
+// StopWebsocket 停止SSW
 func StopWebsocket() error {
 	stat.Reset()
 	if client != nil {
@@ -150,36 +156,52 @@ func StopWebsocket() error {
 	return errors.New("SS client is nil")
 }
 
+// StatReset 重置（清零）统计数据
+// 一般情况不需要手动重置，在启动和停止的时候会自动清零
 func StatReset() {
 	stat.Reset()
 }
 
-func Bandwidth1() (r, t, timestamp uint64) {
+// BandwidthInfo 表示一组带宽数据
+type BandwidthInfo struct {
+	// RX 代表下行（接收）带宽 (bit/s)
+	RX int64
+	// TX 代表上行（发送）带宽 (bit/s)
+	TX int64
+	// Timestamp 代表上次计算带宽的时间戳
+	Timestamp int64
+}
+
+// Bandwidth1 返回最近1s的带宽(bit/s)
+func Bandwidth1() *BandwidthInfo {
 	if stat == nil {
-		return
+		return &BandwidthInfo{}
 	}
 	r, t, time := stat.Bandwidth1()
-	return r, t, uint64(time.Unix())
+	return &BandwidthInfo{RX: int64(r), TX: int64(t), Timestamp: time.Unix()}
 }
 
-func Bandwidth10() (r, t, timestamp uint64) {
+// Bandwidth10 返回最近10s的带宽(bit/s)
+func Bandwidth10() *BandwidthInfo {
 	if stat == nil {
-		return
+		return &BandwidthInfo{}
 	}
 	r, t, time := stat.Bandwidth10()
-	return r, t, uint64(time.Unix())
+	return &BandwidthInfo{RX: int64(r), TX: int64(t), Timestamp: time.Unix()}
 }
 
-func GetRx() uint64 {
+// GetRx 返回已经接收的流量总数(bit)
+func GetRx() int64 {
 	if stat == nil {
 		return 0
 	}
-	return stat.Rx
+	return int64(stat.Rx)
 }
 
-func GetTx() uint64 {
+// GetTx 返回已经发出的流量总数(bit)
+func GetTx() int64 {
 	if stat == nil {
 		return 0
 	}
-	return stat.Tx
+	return int64(stat.Tx)
 }
