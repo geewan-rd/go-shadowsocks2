@@ -1,5 +1,5 @@
 NAME=shadowsocks2
-BINDIR=bin
+BINDIR=output
 GOBUILD=CGO_ENABLED=0 go build -ldflags '-w -s'
 # The -w and -s flags reduce binary sizes by excluding unnecessary symbols and debug info
 
@@ -43,4 +43,4 @@ build-android:
 build-ios:
 	mkdir -p output/ios
 	gomobile bind -target ios -o output/ios/shadowsocks.framework github.com/shadowsocks/go-shadowsocks2/clientlib
-	zip -r shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip ios
+	cd output && zip -r shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip ios

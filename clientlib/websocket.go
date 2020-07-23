@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/shadowsocks/go-shadowsocks2/freconn"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -13,6 +15,7 @@ type WSConnecter struct {
 	ServerAddr string
 	URL        string
 	Username   string
+	Stat       *freconn.Stat
 	dailer     *websocket.Dialer
 }
 
@@ -30,7 +33,9 @@ func (ws *WSConnecter) Connect() (net.Conn, error) {
 		logf("websocket dail failed: %s", err)
 		return nil, err
 	}
-	return wc.UnderlyingConn(), nil
+	newConn := freconn.UpgradeConn(wc.UnderlyingConn())
+	newConn.EnableStat(ws.Stat)
+	return newConn, nil
 }
 
 func (ws *WSConnecter) ServerHost() string {

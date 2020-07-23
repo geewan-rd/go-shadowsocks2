@@ -1,22 +1,35 @@
 package shadowsocks2
 
-import "net"
+import (
+	"net"
+
+	"github.com/shadowsocks/go-shadowsocks2/freconn"
+)
 
 type TCPConnecter struct {
 	ServerAddr   string
+	Stat         *freconn.Stat
 	localTCPAddr *net.TCPAddr
 }
 
 func (tc *TCPConnecter) Connect() (net.Conn, error) {
+	var c net.Conn
+	var err error
 	if tc.localTCPAddr == nil {
-		return net.Dial("tcp", tc.ServerAddr)
+		c, err = net.Dial("tcp", tc.ServerAddr)
 	} else {
-		serverTCPAddr, err := net.ResolveTCPAddr("tcp4", tc.ServerAddr)
-		if err != nil {
-			return nil, err
+		serverTCPAddr, e := net.ResolveTCPAddr("tcp4", tc.ServerAddr)
+		if e != nil {
+			return nil, e
 		}
-		return net.DialTCP("tcp4", tc.localTCPAddr, serverTCPAddr)
+		c, e = net.DialTCP("tcp4", tc.localTCPAddr, serverTCPAddr)
 	}
+	if err != nil {
+		return c, err
+	}
+	newConn := freconn.UpgradeConn(c)
+	newConn.EnableStat(tc.Stat)
+	return newConn, nil
 }
 
 func (tc *TCPConnecter) ServerHost() string {

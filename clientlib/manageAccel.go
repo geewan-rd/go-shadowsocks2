@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/shadowsocks/go-shadowsocks2/freconn"
+
 	"github.com/shadowsocks/go-shadowsocks2/core"
 	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
@@ -23,6 +25,7 @@ var config = ssConfig{
 
 var logWriter = os.Stderr
 var logger = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
+var stat = freconn.NewStat()
 
 func logf(f string, v ...interface{}) {
 	if config.Verbose {
@@ -80,6 +83,8 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
 	client = &Client{}
 	tcpConnecter.ServerAddr = addr
+	stat.Reset()
+	tcpConnecter.Stat = stat
 
 	logf("Start shadowsocks on TCP, server: %s", tcpConnecter.ServerAddr)
 	err = client.StartsocksConnLocal(localAddr, tcpConnecter, ciph.StreamConn)
@@ -87,7 +92,13 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 		return err
 	}
 	logf("Start shadowsocks on UDP, server: %s", tcpConnecter.ServerAddr)
-	err = udpSocksLocal(localAddr, addr, ciph.PacketConn)
+	upgradePC := func(pc net.PacketConn) net.PacketConn {
+		spc := ciph.PacketConn(pc)
+		newPC := freconn.UpgradePacketConn(spc)
+		newPC.EnableStat(stat)
+		return newPC
+	}
+	err = udpSocksLocal(localAddr, addr, upgradePC)
 	if err != nil {
 		return err
 	}
@@ -95,6 +106,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 }
 
 func StopTCPUDP() (err error) {
+	stat.Reset()
 	if client != nil {
 		logf("Stop shadowsocks on TCP")
 		err = client.StopsocksConnLocal()
@@ -118,19 +130,56 @@ func StartWebsocket(server, url, username string, serverPort int, method string,
 	socks.UDPEnabled = false
 	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
 	client = &Client{}
+	stat.Reset()
 	connecter := &WSConnecter{
 		ServerAddr: addr,
 		URL:        url,
 		Username:   username,
+		Stat:       stat,
 	}
 	logf("Start shadowsocks on websocket, server: %s", connecter.ServerAddr)
 	return client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
 }
 
 func StopWebsocket() error {
+	stat.Reset()
 	if client != nil {
 		logf("Stop shadowsocks on websocket")
 		return client.StopsocksConnLocal()
 	}
 	return errors.New("SS client is nil")
+}
+
+func StatReset() {
+	stat.Reset()
+}
+
+func Bandwidth1() (r, t, timestamp uint64) {
+	if stat == nil {
+		return
+	}
+	r, t, time := stat.Bandwidth1()
+	return r, t, uint64(time.Unix())
+}
+
+func Bandwidth10() (r, t, timestamp uint64) {
+	if stat == nil {
+		return
+	}
+	r, t, time := stat.Bandwidth10()
+	return r, t, uint64(time.Unix())
+}
+
+func GetRx() uint64 {
+	if stat == nil {
+		return 0
+	}
+	return stat.Rx
+}
+
+func GetTx() uint64 {
+	if stat == nil {
+		return 0
+	}
+	return stat.Tx
 }
