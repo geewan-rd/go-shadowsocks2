@@ -156,6 +156,45 @@ func StopWebsocket() error {
 	return errors.New("SS client is nil")
 }
 
+func StartQuic(server string, serverPort int, method string, password string, localPort int, verbose bool) error {
+	config.Verbose = verbose
+	var key []byte
+
+	addr := fmt.Sprintf("%s:%d", server, serverPort)
+	cipher := method
+	var err error
+
+	ciph, err := core.PickCipher(cipher, key, password)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
+	client = &Client{}
+	connecter, err := NewQuicConnecter(addr)
+	if err != nil {
+		logf("Init Quic Connecter failed:%s", err)
+		return err
+	}
+
+	logf("Start shadowsocks on QUIC, server: %s", connecter.ServerAddr)
+	err = client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// StopTCPUDP 停止SS
+func StopQuic() (err error) {
+	if client != nil {
+		logf("Stop shadowsocks on Quic")
+		err = client.StopsocksConnLocal()
+	}
+	return
+}
+
 // StatReset 重置（清零）统计数据
 // 一般情况不需要手动重置，在启动和停止的时候会自动清零
 func StatReset() {
