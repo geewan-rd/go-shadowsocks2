@@ -172,6 +172,15 @@ type BandwidthInfo struct {
 	Timestamp int64
 }
 
+// GetRx 获取下行（接收）带宽 (bit/s)
+func (b *BandwidthInfo) GetRx() int64 { return b.RX }
+
+// GetTx 获取上行（发送）带宽 (bit/s)
+func (b *BandwidthInfo) GetTx() int64 { return b.TX }
+
+// GetTimestamp 获取上次计算带宽的时间戳
+func (b *BandwidthInfo) GetTimestamp() int64 { return b.Timestamp }
+
 // Bandwidth1 返回最近1s的带宽(bit/s)
 func Bandwidth1() *BandwidthInfo {
 	if stat == nil {
