@@ -4,10 +4,11 @@ go 1.12
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
+	github.com/fregie/mpx v0.0.0-20200823084645-0df5ad5677ff // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/juju/ratelimit v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d
 	golang.org/x/mobile v0.0.0-20200721161523-bcce01171201 // indirect
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
@@ -20,4 +21,6 @@ replace (
 	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a => github.com/golang/sys v0.0.0-20190215142949-d0b11bdaac8a
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d => github.com/golang/sys v0.0.0-20190412213103-97732733099d
 	golang.org/x/text v0.3.0 => github.com/golang/text v0.3.0
+
+	github.com/fregie/mpx => ../mpx
 )

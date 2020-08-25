@@ -38,6 +38,10 @@ func (ws *WSConnecter) Connect() (net.Conn, error) {
 	return newConn, nil
 }
 
+func (ws *WSConnecter) Dial() (net.Conn, error) {
+	return ws.Connect()
+}
+
 func (ws *WSConnecter) ServerHost() string {
 	return ws.ServerAddr
 }

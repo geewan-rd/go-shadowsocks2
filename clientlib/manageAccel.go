@@ -156,6 +156,46 @@ func StopWebsocket() error {
 	return errors.New("SS client is nil")
 }
 
+var mc *mpxConnecter
+
+func StartWebsocketMpx(server, url, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
+	config.Verbose = verbose
+	var key []byte
+	addr := fmt.Sprintf("%s:%d", server, serverPort)
+	cipher := method
+	var err error
+	ciph, err := core.PickCipher(cipher, key, password)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	socks.UDPEnabled = false
+	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
+	client = &Client{}
+	stat.Reset()
+	dialer := &WSConnecter{
+		ServerAddr: addr,
+		URL:        url,
+		Username:   username,
+		Stat:       stat,
+	}
+	mc = NewMpxConnecter(dialer, 5)
+	logf("Start shadowsocks on websocket mpx, server: %s", dialer.ServerAddr)
+	return client.StartsocksConnLocal(localAddr, mc, ciph.StreamConn)
+}
+
+func StopWebsocketMpx() error {
+	stat.Reset()
+	if client != nil {
+		logf("Stop shadowsocks on websocket mpx")
+		return client.StopsocksConnLocal()
+	}
+	if mc != nil {
+		mc.Close()
+	}
+	return errors.New("SS client is nil")
+}
+
 // StatReset 重置（清零）统计数据
 // 一般情况不需要手动重置，在启动和停止的时候会自动清零
 func StatReset() {
