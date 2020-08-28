@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/shadowsocks/go-shadowsocks2/freconn"
@@ -64,6 +65,37 @@ func SetLocalIP(ip string) error {
 	}
 	tcpConnecter.localTCPAddr = TCPAddr
 	localIP = ip
+	return nil
+}
+
+func StartUDPTunnel(server string, serverPort int, method string, password string, tunnel string) error {
+	config.Verbose = true
+	var key []byte
+	addr := fmt.Sprintf("%s:%d", server, serverPort)
+	cipher := method
+	ciph, err := core.PickCipher(cipher, key, password)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	socks.UDPEnabled = true
+	p := strings.Split(tunnel, "=")
+	udpLocal(p[0], addr, p[1], ciph.PacketConn)
+	return nil
+}
+
+func StartTCPtunnel(server string, serverPort int, method string, password string, tunnel string) error {
+	config.Verbose = true
+	var key []byte
+	addr := fmt.Sprintf("%s:%d", server, serverPort)
+	cipher := method
+	ciph, err := core.PickCipher(cipher, key, password)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	p := strings.Split(tunnel, "=")
+	tcpTun(p[0], addr, p[1], ciph.StreamConn)
 	return nil
 }
 

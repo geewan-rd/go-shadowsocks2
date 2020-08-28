@@ -43,7 +43,7 @@ func udpLocal(laddr, server, target string, shadow func(net.PacketConn) net.Pack
 	}
 	defer c.Close()
 
-	nm := newNATmap(config.UDPTimeout)
+	nm := newNATmap(10 * time.Second)
 	buf := make([]byte, udpBufSize)
 	copy(buf, tgt)
 
@@ -67,6 +67,7 @@ func udpLocal(laddr, server, target string, shadow func(net.PacketConn) net.Pack
 			nm.Add(raddr, c, pc, relayClient)
 		}
 
+		logf("%s <-> %s <-> %s", pc.LocalAddr().String(), srvAddr.String(), tgt.String())
 		_, err = pc.WriteTo(buf[:len(tgt)+n], srvAddr)
 		if err != nil {
 			logf("UDP local write error: %v", err)
@@ -267,6 +268,7 @@ func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout 
 		src.SetReadDeadline(time.Now().Add(timeout))
 		n, raddr, err := src.ReadFrom(buf)
 		if err != nil {
+			logf("readfrom err:%s", err)
 			return err
 		}
 
@@ -278,6 +280,7 @@ func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout 
 			_, err = dst.WriteTo(buf[:len(srcAddr)+n], target)
 		case relayClient: // client -> user: strip original packet source
 			srcAddr := socks.SplitAddr(buf[:n])
+			logf("write to %s", target.String())
 			_, err = dst.WriteTo(buf[len(srcAddr):n], target)
 		case socksClient: // client -> socks5 program: just set RSV and FRAG = 0
 			// srcAddr := socks.ParseAddr(raddr.String())
