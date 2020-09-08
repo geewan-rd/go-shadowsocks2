@@ -24,7 +24,7 @@ var config = ssConfig{
 	Verbose: true,
 }
 
-var logWriter = os.Stderr
+var logWriter = os.Stdout
 var logger = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
 var stat = freconn.NewStat()
 
