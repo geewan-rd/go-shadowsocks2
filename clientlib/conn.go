@@ -4,6 +4,8 @@ import (
 	"errors"
 	"io"
 	"net"
+	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/shadowsocks/go-shadowsocks2/socks"
@@ -68,6 +70,12 @@ func (c *Client) StopsocksConnLocal() error {
 }
 
 func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgrade) {
+	defer func() {
+		if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+			runtime.GC()
+			debug.FreeOSMemory()
+		}
+	}()
 	defer lc.Close()
 	tgt, err := socks.Handshake(lc)
 	if err != nil {
