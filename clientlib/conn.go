@@ -6,15 +6,20 @@ import (
 	"net"
 	"runtime"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
 
 type Client struct {
-	TCPListener net.Listener
-	TCPRuning   bool
-	closeTCP    bool
+	TCPListener  net.Listener
+	TCPRuning    bool
+	MaxConnCount int
+	connCount    int
+	mutex        sync.Mutex
+	ConnMap      sync.Map
+	closeTCP     bool
 }
 
 type Connecter interface {
@@ -36,6 +41,24 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 	c.TCPRuning = true
 	go func() {
 		defer func() { c.TCPRuning = false }()
+		connCh := make(chan net.Conn)
+		defer close(connCh)
+		if c.MaxConnCount > 0 {
+			for i := 0; i < c.MaxConnCount; i++ {
+				go func() {
+					for conn := range connCh {
+						lAddr := conn.RemoteAddr().String()
+						c.ConnMap.Store(lAddr, conn)
+						c.connCount++
+						// logf("Conn count++: %d", c.connCount)
+						c.handleConn(conn, connecter, shadow)
+						c.connCount--
+						// logf("Conn count--: %d", c.connCount)
+						c.ConnMap.Delete(lAddr)
+					}
+				}()
+			}
+		}
 		for {
 			lc, err := c.TCPListener.Accept()
 			if err != nil {
@@ -47,25 +70,45 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 				continue
 			}
 			lc.(*net.TCPConn).SetKeepAlive(true)
-			go c.handleConn(lc, connecter, shadow)
+			if c.MaxConnCount == 0 {
+				go c.handleConn(lc, connecter, shadow)
+			} else {
+				if c.connCount >= c.MaxConnCount {
+					go func() {
+						c.mutex.Lock()
+						defer c.mutex.Unlock()
+						var lastSeen *connLastSeen
+						var key interface{}
+						c.ConnMap.Range(func(k, v interface{}) bool {
+							conn := v.(*connLastSeen)
+							if lastSeen == nil {
+								lastSeen = conn
+								key = k
+								return true
+							}
+							if conn.lastSeen.Before(lastSeen.lastSeen) {
+								lastSeen = conn
+								key = k
+							}
+							return true
+						})
+						if lastSeen != nil {
+							lastSeen.Close()
+							lastSeen.SetDeadline(time.Now())
+							c.ConnMap.Delete(key)
+						}
+					}()
+				}
+				lastSeenConn := &connLastSeen{
+					Conn:     lc,
+					lastSeen: time.Now(),
+				}
+				connCh <- lastSeenConn
+
+			}
 		}
 	}()
 
-	return nil
-}
-
-func (c *Client) StopsocksConnLocal() error {
-	logf("stopping tcp ss")
-	if !c.TCPRuning {
-		logf("TCP is not running")
-		return errors.New("Not running")
-	}
-	c.closeTCP = true
-	err := c.TCPListener.Close()
-	if err != nil {
-		logf("close tcp listener failed: %s", err)
-		return err
-	}
 	return nil
 }
 
@@ -101,14 +144,16 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 		return
 	}
 	defer rc.Close()
-	rc = shadow(rc)
-	if _, err = rc.Write(tgt); err != nil {
+
+	var remoteConn net.Conn
+	remoteConn = shadow(rc)
+	if _, err = remoteConn.Write(tgt); err != nil {
 		logf("failed to send target address: %v", err)
 		return
 	}
 
 	logf("proxy %s <-> %s <-> %s", lc.RemoteAddr(), connecter.ServerHost(), tgt)
-	_, _, err = relay(rc, lc)
+	_, _, err = relay(remoteConn, lc)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return // ignore i/o timeout
@@ -142,4 +187,40 @@ func relay(left, right net.Conn) (int64, int64, error) {
 		err = rs.Err
 	}
 	return n, rs.N, err
+}
+
+func (c *Client) StopsocksConnLocal() error {
+	logf("stopping tcp ss")
+	if !c.TCPRuning {
+		logf("TCP is not running")
+		return errors.New("Not running")
+	}
+	c.closeTCP = true
+	err := c.TCPListener.Close()
+	if err != nil {
+		logf("close tcp listener failed: %s", err)
+		return err
+	}
+	return nil
+}
+
+type connLastSeen struct {
+	net.Conn
+	lastSeen time.Time
+}
+
+func (c *connLastSeen) Read(b []byte) (n int, err error) {
+	n, err = c.Conn.Read(b)
+	if err != nil {
+		c.lastSeen = time.Now()
+	}
+	return
+}
+
+func (c *connLastSeen) Write(p []byte) (n int, err error) {
+	n, err = c.Conn.Write(p)
+	if err != nil {
+		c.lastSeen = time.Now()
+	}
+	return
 }

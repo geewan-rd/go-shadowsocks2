@@ -22,5 +22,5 @@ replace (
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d => github.com/golang/sys v0.0.0-20190412213103-97732733099d
 	golang.org/x/text v0.3.0 => github.com/golang/text v0.3.0
 
-	github.com/fregie/mpx => ../mpx
+	// github.com/fregie/mpx => ../mpx
 )

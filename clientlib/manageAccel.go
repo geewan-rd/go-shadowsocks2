@@ -16,8 +16,9 @@ import (
 )
 
 type ssConfig struct {
-	Verbose    bool
-	UDPTimeout time.Duration
+	Verbose      bool
+	UDPTimeout   time.Duration
+	MaxConnCount int
 }
 
 var config = ssConfig{
@@ -55,6 +56,14 @@ func FinishLog() error {
 		return logWriter.Close()
 	}
 	return errors.New("log writter is nil")
+}
+
+// SetMaxConnCount 设置最大并发连接数
+func SetMaxConnCount(maxConnCount int) {
+	if maxConnCount < 0 {
+		maxConnCount = 0
+	}
+	config.MaxConnCount = maxConnCount
 }
 
 func SetLocalIP(ip string) error {
@@ -116,7 +125,9 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
-	client = &Client{}
+	client = &Client{
+		MaxConnCount: config.MaxConnCount,
+	}
 	tcpConnecter.ServerAddr = addr
 	stat.Reset()
 	tcpConnecter.Stat = stat
@@ -166,7 +177,9 @@ func StartWebsocket(server, url, username string, serverPort int, method string,
 	}
 	socks.UDPEnabled = false
 	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
-	client = &Client{}
+	client = &Client{
+		MaxConnCount: config.MaxConnCount,
+	}
 	stat.Reset()
 	connecter := &WSConnecter{
 		ServerAddr: addr,

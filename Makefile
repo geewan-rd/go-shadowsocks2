@@ -4,7 +4,7 @@ GOBUILD=CGO_ENABLED=0 go build -ldflags '-w -s'
 # The -w and -s flags reduce binary sizes by excluding unnecessary symbols and debug info
 
 export GOSUMDB=off
-export GOPROXY=direct
+export GOPROXY=https://goproxy.io,direct
 
 BUILD_VERSION   := $(shell git describe --tags)
 GIT_COMMIT_SHA1 := $(shell git rev-parse --short HEAD)
