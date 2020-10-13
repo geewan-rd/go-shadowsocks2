@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
+	ssw "github.com/shadowsocks/go-shadowsocks2/websocket"
+
 	"github.com/shadowsocks/go-shadowsocks2/freconn"
 
 	"github.com/gorilla/websocket"
@@ -27,6 +29,7 @@ func (ws *WSConnecter) Connect() (net.Conn, error) {
 	fmt.Printf("dial to %s\n", u.String())
 	header := http.Header{
 		"Shadowsocks-Username": []string{ws.Username},
+		"Shadowsocks-Type":     []string{"connection"},
 	}
 	wc, _, err := ws.dailer.Dial(u.String(), header)
 	if err != nil {
@@ -40,6 +43,10 @@ func (ws *WSConnecter) Connect() (net.Conn, error) {
 
 func (ws *WSConnecter) Dial() (net.Conn, error) {
 	return ws.Connect()
+}
+
+func (ws *WSConnecter) DialPacketConn(localAddr net.Addr) (net.PacketConn, error) {
+	return ssw.NewWSPacketConn(localAddr, ws.Username), nil
 }
 
 func (ws *WSConnecter) ServerHost() string {

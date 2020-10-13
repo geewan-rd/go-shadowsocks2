@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 )
 
 type WSPacketConn struct {
+	Username       string
 	localAddr      net.Addr
 	wsConnMap      sync.Map
 	reader         chan *packet
@@ -23,6 +26,17 @@ type WSPacketConn struct {
 	writeCtx       context.Context
 	writeCtxCancel context.CancelFunc
 	closed         bool
+	dailer         *websocket.Dialer
+}
+
+type WSAddr url.URL
+
+func (a *WSAddr) Network() string {
+	return a.Scheme
+}
+
+func (a *WSAddr) String() string {
+	return a.Host + a.Path
 }
 
 type packet struct {
@@ -31,11 +45,12 @@ type packet struct {
 	len        int
 }
 
-func NewWSPacketConn(localAddr net.Addr) *WSPacketConn {
+func NewWSPacketConn(localAddr net.Addr, username string) *WSPacketConn {
 	ctx, cancel := context.WithCancel(context.Background())
 	readctx, readcancel := context.WithCancel(ctx)
 	writectx, writecancel := context.WithCancel(ctx)
 	return &WSPacketConn{
+		Username:       username,
 		localAddr:      localAddr,
 		reader:         make(chan *packet),
 		ctx:            ctx,
@@ -49,7 +64,8 @@ func NewWSPacketConn(localAddr net.Addr) *WSPacketConn {
 
 func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn) {
 	defer conn.Close()
-	_, exist := ws.wsConnMap.LoadOrStore(conn.RemoteAddr().String(), conn)
+	wsAddr := conn.RemoteAddr()
+	_, exist := ws.wsConnMap.LoadOrStore(wsAddr.String(), conn)
 	if exist {
 		log.Printf("Conn remote add exist")
 		return
@@ -75,7 +91,7 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn) {
 			continue
 		}
 		packet := &packet{
-			remoteAddr: conn.RemoteAddr(),
+			remoteAddr: wsAddr,
 			buff:       p,
 			len:        len(p),
 		}
@@ -125,7 +141,23 @@ func (ws *WSPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	}
 	c, ok := ws.wsConnMap.Load(addr.String())
 	if !ok {
-		return 0, errors.New("ws conn not found")
+		if ws.Username != "" && addr != nil {
+			if ws.dailer == nil {
+				ws.dailer = websocket.DefaultDialer
+			}
+			header := http.Header{
+				"Shadowsocks-Username": []string{ws.Username},
+				"Shadowsocks-Type":     []string{"packet"},
+			}
+			wc, _, err := ws.dailer.Dial(addr.String(), header)
+			if err != nil {
+				return 0, err
+			}
+			ws.HandleWSConn(wc)
+			c = wc
+		} else {
+			return 0, errors.New("ws conn not found")
+		}
 	}
 	conn := c.(*websocket.Conn)
 	err = conn.WriteMessage(websocket.BinaryMessage, p)

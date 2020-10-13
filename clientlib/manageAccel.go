@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/shadowsocks/go-shadowsocks2/freconn"
+	"github.com/shadowsocks/go-shadowsocks2/websocket"
 
 	"github.com/shadowsocks/go-shadowsocks2/core"
 	"github.com/shadowsocks/go-shadowsocks2/socks"
@@ -133,7 +134,11 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 		newPC.EnableStat(stat)
 		return newPC
 	}
-	err = udpSocksLocal(localAddr, addr, upgradePC)
+	udpAddr, err := net.ResolveUDPAddr("UDP", addr)
+	if err != nil {
+		return err
+	}
+	err = udpSocksLocal(localAddr, udpAddr, &UDPConnecter{}, upgradePC)
 	if err != nil {
 		return err
 	}
@@ -175,17 +180,34 @@ func StartWebsocket(server, url, username string, serverPort int, method string,
 		Stat:       stat,
 	}
 	logf("Start shadowsocks on websocket, server: %s", connecter.ServerAddr)
-	return client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
+	client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
+	upgradePC := func(pc net.PacketConn) net.PacketConn {
+		spc := ciph.PacketConn(pc)
+		newPC := freconn.UpgradePacketConn(spc)
+		newPC.EnableStat(stat)
+		return newPC
+	}
+	wsAddr := websocket.WSAddr{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL}
+	udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
+	return nil
 }
 
 // StopWebsocket 停止SSW
 func StopWebsocket() error {
 	stat.Reset()
+	var err error
 	if client != nil {
 		logf("Stop shadowsocks on websocket")
-		return client.StopsocksConnLocal()
+		err = client.StopsocksConnLocal()
+		if err != nil {
+			logf("Stop shadowsocks on websocket connction failed:%s", err)
+		}
 	}
-	return errors.New("SS client is nil")
+	err = stopUdpSocksLocal()
+	if err != nil {
+		logf("Stop shadowsocks on websocket packet connction failed:%s", err)
+	}
+	return err
 }
 
 var mc *mpxConnecter
