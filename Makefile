@@ -4,7 +4,7 @@ GOBUILD=CGO_ENABLED=0 go build -ldflags '-w -s'
 # The -w and -s flags reduce binary sizes by excluding unnecessary symbols and debug info
 
 export GOSUMDB=off
-export GOPROXY=direct
+export GOPROXY=https://goproxy.io,direct
 
 BUILD_VERSION   := $(shell git describe --tags)
 GIT_COMMIT_SHA1 := $(shell git rev-parse --short HEAD)
@@ -41,6 +41,10 @@ build-android:
 	# gomobile bind -target android -o output/android/tun2socks.aar github.com/geewan-rd/transocks-electron/accel/gotun2socks
 
 build-ios:
+	rm -rf output/ios
 	mkdir -p output/ios
 	gomobile bind -target ios -o output/ios/shadowsocks.framework github.com/shadowsocks/go-shadowsocks2/clientlib
 	cd output && zip -r shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip ios
+
+build-socks5test:
+	go build -o output/socks5_test github.com/shadowsocks/go-shadowsocks2/socks5test

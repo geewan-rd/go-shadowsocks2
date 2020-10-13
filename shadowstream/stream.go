@@ -8,8 +8,6 @@ import (
 	"net"
 )
 
-const bufSize = 32 * 1024
-
 type writer struct {
 	io.Writer
 	cipher.Stream
