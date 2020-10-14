@@ -60,8 +60,8 @@ func NewWSPacketConn(localAddr net.Addr, username string) *WSPacketConn {
 	}
 }
 
-func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, addr *WSAddr) error {
-	_, exist := ws.wsConnMap.LoadOrStore(addr.String(), conn)
+func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, remoteAddr net.Addr) error {
+	_, exist := ws.wsConnMap.LoadOrStore(remoteAddr.String(), conn)
 	if exist {
 		conn.Close()
 		log.Printf("Conn remote add exist")
@@ -79,7 +79,7 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, addr *WSAddr) error {
 	}()
 	go func() {
 		defer conn.Close()
-		defer ws.wsConnMap.Delete(addr.String())
+		defer ws.wsConnMap.Delete(remoteAddr.String())
 		for {
 			t, p, err := conn.ReadMessage()
 			if err != nil {
@@ -91,7 +91,7 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, addr *WSAddr) error {
 				continue
 			}
 			packet := &packet{
-				remoteAddr: addr,
+				remoteAddr: remoteAddr,
 				buff:       p,
 				len:        len(p),
 			}
