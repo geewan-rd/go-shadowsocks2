@@ -22,13 +22,8 @@ const (
 const udpBufSize = 64 * 1024
 
 // Listen on laddr for UDP packets, encrypt and send to server to reach target.
-func udpLocal(laddr, server, target string, shadow func(net.PacketConn) net.PacketConn) {
-	srvAddr, err := net.ResolveUDPAddr("udp", server)
-	if err != nil {
-		logf("UDP server address error: %v", err)
-		return
-	}
-
+func udpLocal(laddr string, server net.Addr, target string, connecter PcConnecter, shadow func(net.PacketConn) net.PacketConn) {
+	var err error
 	tgt := socks.ParseAddr(target)
 	if tgt == nil {
 		err = fmt.Errorf("invalid target address: %q", target)
@@ -57,7 +52,7 @@ func udpLocal(laddr, server, target string, shadow func(net.PacketConn) net.Pack
 
 		pc := nm.Get(raddr.String())
 		if pc == nil {
-			pc, err = net.ListenPacket("udp", "")
+			pc, err = connecter.DialPacketConn(&net.UDPAddr{})
 			if err != nil {
 				logf("UDP local listen error: %v", err)
 				continue
@@ -67,8 +62,8 @@ func udpLocal(laddr, server, target string, shadow func(net.PacketConn) net.Pack
 			nm.Add(raddr, c, pc, relayClient)
 		}
 
-		logf("%s <-> %s <-> %s", pc.LocalAddr().String(), srvAddr.String(), tgt.String())
-		_, err = pc.WriteTo(buf[:len(tgt)+n], srvAddr)
+		logf("%s <-> %s <-> %s", pc.LocalAddr().String(), server.String(), tgt.String())
+		_, err = pc.WriteTo(buf[:len(tgt)+n], server)
 		if err != nil {
 			logf("UDP local write error: %v", err)
 			continue
@@ -119,7 +114,7 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 				}
 				pc := nm.Get(raddr.String())
 				if pc == nil {
-					pc, err = connecter.DialPacketConn(&net.TCPAddr{})
+					pc, err = connecter.DialPacketConn(&net.UDPAddr{})
 					if err != nil {
 						logf("UDP local listen error: %v", err)
 						continue

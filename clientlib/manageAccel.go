@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -90,7 +91,36 @@ func StartUDPTunnel(server string, serverPort int, method string, password strin
 	}
 	socks.UDPEnabled = true
 	p := strings.Split(tunnel, "=")
-	udpLocal(p[0], addr, p[1], ciph.PacketConn)
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	udpLocal(p[0], udpAddr, p[1], &UDPConnecter{}, ciph.PacketConn)
+	return nil
+}
+
+func StartUDPWSTunnel(server string, serverPort int, method, URL, username string, password string, tunnel string) error {
+	config.Verbose = true
+	addr := fmt.Sprintf("%s:%d", server, serverPort)
+	connecter := &WSConnecter{
+		ServerAddr: addr,
+		URL:        URL,
+		Username:   username,
+		Stat:       stat,
+	}
+	var key []byte
+	ciph, err := core.PickCipher(method, key, password)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	socks.UDPEnabled = true
+	p := strings.Split(tunnel, "=")
+	wsAddr := websocket.WSAddr{
+		URL: url.URL{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL},
+	}
+	udpLocal(p[0], &wsAddr, p[1], connecter, ciph.PacketConn)
 	return nil
 }
 
@@ -169,7 +199,7 @@ func StopTCPUDP() (err error) {
 }
 
 // StartWebsocket 启动SSW
-func StartWebsocket(server, url, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
+func StartWebsocket(server, URL, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
 	config.Verbose = verbose
 	var key []byte
 	addr := fmt.Sprintf("%s:%d", server, serverPort)
@@ -188,7 +218,7 @@ func StartWebsocket(server, url, username string, serverPort int, method string,
 	stat.Reset()
 	connecter := &WSConnecter{
 		ServerAddr: addr,
-		URL:        url,
+		URL:        URL,
 		Username:   username,
 		Stat:       stat,
 	}
@@ -200,7 +230,9 @@ func StartWebsocket(server, url, username string, serverPort int, method string,
 		newPC.EnableStat(stat)
 		return newPC
 	}
-	wsAddr := websocket.WSAddr{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL}
+	wsAddr := websocket.WSAddr{
+		URL: url.URL{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL},
+	}
 	udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
 	return nil
 }

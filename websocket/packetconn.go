@@ -29,14 +29,12 @@ type WSPacketConn struct {
 	dailer         *websocket.Dialer
 }
 
-type WSAddr url.URL
+type WSAddr struct {
+	url.URL
+}
 
 func (a *WSAddr) Network() string {
 	return a.Scheme
-}
-
-func (a *WSAddr) String() string {
-	return a.Host + a.Path
 }
 
 type packet struct {
@@ -62,13 +60,12 @@ func NewWSPacketConn(localAddr net.Addr, username string) *WSPacketConn {
 	}
 }
 
-func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn) {
-	defer conn.Close()
-	wsAddr := conn.RemoteAddr()
-	_, exist := ws.wsConnMap.LoadOrStore(wsAddr.String(), conn)
+func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, addr *WSAddr) error {
+	_, exist := ws.wsConnMap.LoadOrStore(addr.String(), conn)
 	if exist {
+		conn.Close()
 		log.Printf("Conn remote add exist")
-		return
+		return errors.New("Conn remote add exist")
 	}
 	ws.localAddr = conn.LocalAddr()
 	connCtx, cancel := context.WithCancel(context.Background())
@@ -80,28 +77,32 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn) {
 		case <-connCtx.Done(): // 防止泄漏
 		}
 	}()
-	for {
-		t, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("ReadMessage: %s", err)
-			break
+	go func() {
+		defer conn.Close()
+		defer ws.wsConnMap.Delete(addr.String())
+		for {
+			t, p, err := conn.ReadMessage()
+			if err != nil {
+				log.Printf("ReadMessage: %s", err)
+				break
+			}
+			if t != websocket.BinaryMessage {
+				log.Printf("Type not Binary")
+				continue
+			}
+			packet := &packet{
+				remoteAddr: addr,
+				buff:       p,
+				len:        len(p),
+			}
+			select {
+			case ws.reader <- packet:
+			case <-ws.ctx.Done():
+				break
+			}
 		}
-		if t != websocket.BinaryMessage {
-			log.Printf("Type not Binary")
-			continue
-		}
-		packet := &packet{
-			remoteAddr: wsAddr,
-			buff:       p,
-			len:        len(p),
-		}
-		select {
-		case ws.reader <- packet:
-		case <-ws.ctx.Done():
-			break
-		}
-	}
-
+	}()
+	return nil
 }
 
 // ReadFrom reads a packet from the connection,
@@ -141,7 +142,7 @@ func (ws *WSPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	}
 	c, ok := ws.wsConnMap.Load(addr.String())
 	if !ok {
-		if ws.Username != "" && addr != nil {
+		if wsAddr, ok := addr.(*WSAddr); ok && ws.Username != "" {
 			if ws.dailer == nil {
 				ws.dailer = websocket.DefaultDialer
 			}
@@ -153,13 +154,17 @@ func (ws *WSPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 			if err != nil {
 				return 0, err
 			}
-			ws.HandleWSConn(wc)
-			c = wc
+			ws.HandleWSConn(wc, wsAddr)
 		} else {
 			return 0, errors.New("ws conn not found")
 		}
 	}
+	c, ok = ws.wsConnMap.Load(addr.String())
+	if !ok {
+		return 0, errors.New("ws conn not found")
+	}
 	conn := c.(*websocket.Conn)
+	log.Printf("Write to %s", addr.String())
 	err = conn.WriteMessage(websocket.BinaryMessage, p)
 	return len(p), err
 }
