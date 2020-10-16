@@ -69,7 +69,6 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, remoteAddr net.Addr) 
 	}
 	ws.localAddr = conn.LocalAddr()
 	connCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	go func() {
 		select {
 		case <-ws.ctx.Done():
@@ -78,6 +77,7 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, remoteAddr net.Addr) 
 		}
 	}()
 	go func() {
+		defer cancel()
 		defer conn.Close()
 		defer ws.wsConnMap.Delete(remoteAddr.String())
 		for {

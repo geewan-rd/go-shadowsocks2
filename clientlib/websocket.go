@@ -1,7 +1,6 @@
 package shadowsocks2
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -26,7 +25,7 @@ func (ws *WSConnecter) Connect() (net.Conn, error) {
 		ws.dailer = websocket.DefaultDialer
 	}
 	u := url.URL{Scheme: "ws", Host: ws.ServerAddr, Path: ws.URL}
-	fmt.Printf("dial to %s\n", u.String())
+	logf("dial to %s\n", u.String())
 	header := http.Header{
 		"Shadowsocks-Username": []string{ws.Username},
 		"Shadowsocks-Type":     []string{"connection"},
