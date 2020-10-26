@@ -223,7 +223,10 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 		Stat:       stat,
 	}
 	logf("Start shadowsocks on websocket, server: %s", connecter.ServerAddr)
-	client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
+	err = client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
+	if err != nil {
+		return err
+	}
 	upgradePC := func(pc net.PacketConn) net.PacketConn {
 		spc := ciph.PacketConn(pc)
 		newPC := freconn.UpgradePacketConn(spc)
@@ -233,7 +236,10 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 	wsAddr := websocket.WSAddr{
 		URL: url.URL{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL},
 	}
-	udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
+	err = udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -257,8 +263,11 @@ func StopWebsocket() error {
 
 var mc *mpxConnecter
 
-func StartWebsocketMpx(server, url, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
+func StartWebsocketMpx(server, URL, username string, serverPort int, method string, password string, localPort int, connCount int, verbose bool) error {
 	config.Verbose = verbose
+	if connCount <= 0 {
+		connCount = 2
+	}
 	var key []byte
 	addr := fmt.Sprintf("%s:%d", server, serverPort)
 	cipher := method
@@ -272,15 +281,32 @@ func StartWebsocketMpx(server, url, username string, serverPort int, method stri
 	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
 	client = &Client{}
 	stat.Reset()
-	dialer := &WSConnecter{
+	connecter := &WSConnecter{
 		ServerAddr: addr,
-		URL:        url,
+		URL:        URL,
 		Username:   username,
 		Stat:       stat,
 	}
-	mc = NewMpxConnecter(dialer, 5)
-	logf("Start shadowsocks on websocket mpx, server: %s", dialer.ServerAddr)
-	return client.StartsocksConnLocal(localAddr, mc, ciph.StreamConn)
+	mc = NewMpxConnecter(connecter, connCount)
+	logf("Start shadowsocks on websocket mpx, server: %s", connecter.ServerAddr)
+	err = client.StartsocksConnLocal(localAddr, mc, ciph.StreamConn)
+	if err != nil {
+		return err
+	}
+	upgradePC := func(pc net.PacketConn) net.PacketConn {
+		spc := ciph.PacketConn(pc)
+		newPC := freconn.UpgradePacketConn(spc)
+		newPC.EnableStat(stat)
+		return newPC
+	}
+	wsAddr := websocket.WSAddr{
+		URL: url.URL{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL},
+	}
+	err = udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func StopWebsocketMpx() error {
@@ -291,6 +317,10 @@ func StopWebsocketMpx() error {
 	}
 	if mc != nil {
 		mc.Close()
+	}
+	err := stopUdpSocksLocal()
+	if err != nil {
+		logf("Stop shadowsocks on websocket packet connction failed:%s", err)
 	}
 	return errors.New("SS client is nil")
 }
