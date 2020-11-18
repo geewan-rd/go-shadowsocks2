@@ -155,7 +155,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	}
 
 	socks.UDPEnabled = true
-	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
+	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
 	client = &Client{
 		MaxConnCount: config.MaxConnCount,
 	}
@@ -211,7 +211,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 		return err
 	}
 	socks.UDPEnabled = false
-	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
+	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
 	client = &Client{
 		MaxConnCount: config.MaxConnCount,
 	}
@@ -278,7 +278,7 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 		return err
 	}
 	socks.UDPEnabled = false
-	localAddr := fmt.Sprintf("%s:%d", "127.0.0.1", localPort)
+	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
 	client = &Client{}
 	stat.Reset()
 	connecter := &WSConnecter{
