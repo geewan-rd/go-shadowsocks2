@@ -144,10 +144,19 @@ func StartTCPtunnel(server string, serverPort int, method string, password strin
 func StartTCPUDP(server string, serverPort int, method string, password string, localPort int, verbose bool) error {
 	config.Verbose = verbose
 	var key []byte
+	if server == "" || password == "" {
+		return errors.New("server, password can not be empty")
+	}
+	if serverPort <= 0 || serverPort > 65535 {
+		return errors.New("server port must be between 0 and 65535")
+	}
+	if localPort <= 0 || localPort > 65535 {
+		return errors.New("local port must be between 0 and 65535")
+	}
 
+	var err error
 	addr := fmt.Sprintf("%s:%d", server, serverPort)
 	cipher := method
-	var err error
 
 	ciph, err := core.PickCipher(cipher, key, password)
 	if err != nil {
@@ -203,6 +212,16 @@ func StopTCPUDP() (err error) {
 func StartWebsocket(server, URL, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
 	config.Verbose = verbose
 	var key []byte
+	if server == "" || URL == "" || username == "" || password == "" {
+		return errors.New("server, URL, username, password can not be empty")
+	}
+	if serverPort <= 0 || serverPort > 65535 {
+		return errors.New("server port must be between 0 and 65535")
+	}
+	if localPort <= 0 || localPort > 65535 {
+		return errors.New("local port must be between 0 and 65535")
+	}
+
 	addr := fmt.Sprintf("%s:%d", server, serverPort)
 	cipher := method
 	var err error
@@ -269,6 +288,16 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	if !verbose {
 		mpx.Verbose(false)
 	}
+	if server == "" || URL == "" || username == "" || password == "" {
+		return errors.New("server, URL, username, password can not be empty")
+	}
+	if serverPort <= 0 || serverPort > 65535 {
+		return errors.New("server port must be between 0 and 65535")
+	}
+	if localPort <= 0 || localPort > 65535 {
+		return errors.New("local port must be between 0 and 65535")
+	}
+
 	if connCount <= 0 {
 		connCount = 2
 	}
