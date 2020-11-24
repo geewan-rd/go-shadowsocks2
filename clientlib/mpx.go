@@ -16,7 +16,7 @@ func NewMpxConnecter(dialer mpx.Dialer, connNum int) *mpxConnecter {
 		ConnPool: mpx.NewConnPool(),
 		dialer:   dialer,
 	}
-	mc.StartWithDialer(mc.dialer, connNum)
+	go mc.StartWithDialer(mc.dialer, connNum)
 	return mc
 }
 

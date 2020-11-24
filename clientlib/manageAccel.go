@@ -211,7 +211,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 		log.Print(err)
 		return err
 	}
-	socks.UDPEnabled = false
+	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
 	client = &Client{
 		MaxConnCount: config.MaxConnCount,
@@ -281,7 +281,7 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 		log.Print(err)
 		return err
 	}
-	socks.UDPEnabled = false
+	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
 	client = &Client{}
 	stat.Reset()

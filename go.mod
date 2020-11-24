@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
-	github.com/fregie/mpx v0.0.0-20200823084645-0df5ad5677ff
+	github.com/fregie/mpx v0.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/juju/ratelimit v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -14,7 +14,6 @@ require (
 )
 
 replace (
-
 	github.com/fregie/mpx => ../mpx
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 => github.com/golang/crypto v0.0.0-20190308221718-c2843e01d9a2
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734 => github.com/golang/crypto v0.0.0-20190426145343-a29dc8fdc734
