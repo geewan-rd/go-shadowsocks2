@@ -21,4 +21,9 @@ func NewMpxConnecter(dialer mpx.Dialer, connNum int) *mpxConnecter {
 }
 
 func (m *mpxConnecter) Connect() (net.Conn, error) { return m.ConnPool.Connect(nil) }
-func (m *mpxConnecter) ServerHost() string         { return m.Addr().String() }
+func (m *mpxConnecter) ServerHost() string {
+	if m.Addr() == nil {
+		return ""
+	}
+	return m.Addr().String()
+}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fregie/mpx"
 	"github.com/shadowsocks/go-shadowsocks2/freconn"
 	"github.com/shadowsocks/go-shadowsocks2/websocket"
 
@@ -265,6 +266,9 @@ var mc *mpxConnecter
 
 func StartWebsocketMpx(server, URL, username string, serverPort int, method string, password string, localPort int, connCount int, verbose bool) error {
 	config.Verbose = verbose
+	if !verbose {
+		mpx.Verbose(false)
+	}
 	if connCount <= 0 {
 		connCount = 2
 	}
