@@ -57,6 +57,17 @@ func NewWSPacketConn(localAddr net.Addr, username string) *WSPacketConn {
 		readCtxCancel:  readcancel,
 		writeCtx:       writectx,
 		writeCtxCancel: writecancel,
+		dailer:         &websocket.Dialer{},
+	}
+}
+
+func (ws *WSPacketConn) SetWSTimeout(timeout time.Duration) {
+	if ws.dailer == nil {
+		ws.dailer = &websocket.Dialer{
+			HandshakeTimeout: timeout,
+		}
+	} else {
+		ws.dailer.HandshakeTimeout = timeout
 	}
 }
 

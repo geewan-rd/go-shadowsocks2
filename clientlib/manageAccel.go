@@ -21,16 +21,24 @@ import (
 type ssConfig struct {
 	Verbose      bool
 	UDPTimeout   time.Duration
+	WSTimeout    time.Duration
 	MaxConnCount int
 }
 
 var config = ssConfig{
-	Verbose: true,
+	Verbose:    true,
+	UDPTimeout: 10 * time.Second,
+	WSTimeout:  10 * time.Second,
 }
 
-var logWriter = os.Stdout
-var logger = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
-var stat = freconn.NewStat()
+var (
+	logWriter    = os.Stdout
+	logger       = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
+	stat         = freconn.NewStat()
+	client       *Client
+	localIP      string
+	tcpConnecter = &TCPConnecter{}
+)
 
 func logf(f string, v ...interface{}) {
 	if config.Verbose {
@@ -38,9 +46,12 @@ func logf(f string, v ...interface{}) {
 	}
 }
 
-var client *Client
-var localIP string
-var tcpConnecter = &TCPConnecter{}
+// SetlogOut 设置websocket timeout，单位 ms, 默认 10s
+func SetWSTimeout(timeout int) {
+	if timeout > 0 {
+		config.WSTimeout = time.Duration(timeout) * time.Millisecond
+	}
+}
 
 // SetlogOut 设定日志输出到哪个文件
 func SetlogOut(path string) error {
@@ -242,6 +253,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 		Username:   username,
 		Stat:       stat,
 	}
+	connecter.SetTimeout(config.WSTimeout)
 	logf("Start shadowsocks on websocket, server: %s", connecter.ServerAddr)
 	err = client.StartsocksConnLocal(localAddr, connecter, ciph.StreamConn)
 	if err != nil {
@@ -312,7 +324,9 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	}
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
-	client = &Client{}
+	client = &Client{
+		MaxConnCount: config.MaxConnCount,
+	}
 	stat.Reset()
 	connecter := &WSConnecter{
 		ServerAddr: addr,
@@ -320,6 +334,7 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 		Username:   username,
 		Stat:       stat,
 	}
+	connecter.SetTimeout(config.WSTimeout)
 	mc, err = NewMpxConnecter(connecter, connCount)
 	if err != nil {
 		mc.Close()
