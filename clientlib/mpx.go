@@ -11,13 +11,13 @@ type mpxConnecter struct {
 	dialer mpx.Dialer
 }
 
-func NewMpxConnecter(dialer mpx.Dialer, connNum int) *mpxConnecter {
+func NewMpxConnecter(dialer mpx.Dialer, connNum int) (*mpxConnecter, error) {
 	mc := &mpxConnecter{
 		ConnPool: mpx.NewConnPool(),
 		dialer:   dialer,
 	}
-	go mc.StartWithDialer(mc.dialer, connNum)
-	return mc
+	err := mc.StartWithDialer(mc.dialer, connNum)
+	return mc, err
 }
 
 func (m *mpxConnecter) Connect() (net.Conn, error) { return m.ConnPool.Connect(nil) }

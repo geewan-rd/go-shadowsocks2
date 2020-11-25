@@ -320,7 +320,11 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 		Username:   username,
 		Stat:       stat,
 	}
-	mc = NewMpxConnecter(connecter, connCount)
+	mc, err = NewMpxConnecter(connecter, connCount)
+	if err != nil {
+		mc.Close()
+		return err
+	}
 	logf("Start shadowsocks on websocket mpx, server: %s", connecter.ServerAddr)
 	err = client.StartsocksConnLocal(localAddr, mc, ciph.StreamConn)
 	if err != nil {
