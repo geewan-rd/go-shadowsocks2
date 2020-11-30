@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
-	github.com/fregie/mpx v0.2.0
+	github.com/fregie/mpx v0.2.3
 	github.com/gorilla/websocket v1.4.2
 	github.com/juju/ratelimit v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

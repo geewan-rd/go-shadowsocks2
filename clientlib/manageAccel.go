@@ -365,15 +365,16 @@ func StopWebsocketMpx() error {
 	stat.Reset()
 	if client != nil {
 		logf("Stop shadowsocks on websocket mpx")
-		return client.StopsocksConnLocal()
-	}
-	if mc != nil {
-		mc.Close()
+		client.StopsocksConnLocal()
 	}
 	err := stopUdpSocksLocal()
 	if err != nil {
 		logf("Stop shadowsocks on websocket packet connction failed:%s", err)
 	}
+	if mc != nil {
+		mc.Close()
+	}
+
 	return errors.New("SS client is nil")
 }
 
