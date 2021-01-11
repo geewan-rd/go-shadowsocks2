@@ -40,6 +40,8 @@ var (
 	tcpConnecter = &TCPConnecter{}
 )
 
+var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
+
 func logf(f string, v ...interface{}) {
 	if config.Verbose {
 		logger.Printf(f, v...)
@@ -295,7 +297,7 @@ func StopWebsocket() error {
 
 var mc *mpxConnecter
 
-func StartWebsocketMpx(server, URL, username string, serverPort int, method string, password string, localPort int, connCount int, verbose bool) error {
+func StartWebsocketMpx(server, URL, username string, serverPort int, method string, password string, localPort int, connCount int, verbose bool) (err error) {
 	config.Verbose = verbose
 	if !verbose {
 		mpx.Verbose(false)
@@ -316,11 +318,10 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	var key []byte
 	addr := fmt.Sprintf("%s:%d", server, serverPort)
 	cipher := method
-	var err error
 	ciph, err := core.PickCipher(cipher, key, password)
 	if err != nil {
-		log.Print(err)
-		return err
+		logf(err.Error())
+		return
 	}
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
@@ -337,13 +338,15 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	connecter.SetTimeout(config.WSTimeout)
 	mc, err = NewMpxConnecter(connecter, connCount)
 	if err != nil {
-		mc.Close()
-		return err
+		logf("Mpx first connect failed: %s", err)
+		err = ERR_MPXFirstConnectionFail
+		// mc.Close()
+		// return err
 	}
 	logf("Start shadowsocks on websocket mpx, server: %s", connecter.ServerAddr)
 	err = client.StartsocksConnLocal(localAddr, mc, ciph.StreamConn)
 	if err != nil {
-		return err
+		return
 	}
 	upgradePC := func(pc net.PacketConn) net.PacketConn {
 		spc := ciph.PacketConn(pc)
@@ -356,9 +359,9 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	}
 	err = udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
+	return
 }
 
 func StopWebsocketMpx() error {

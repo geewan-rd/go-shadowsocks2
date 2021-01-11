@@ -26,6 +26,6 @@ func main() {
 	h, p, _ := net.SplitHostPort(*addr)
 	port, _ := strconv.Atoi(p)
 	shadowsocks2.SetWSTimeout(5000)
-	shadowsocks2.StartWebsocketMpx(h, "/proxy", "fregie", port, "CHACHA20", "789632145", 1080, 5, *verbose)
+	shadowsocks2.StartWebsocketMpx(h, "/proxy", "fregie", port, "CHACHA20", "789632145", 1080, 2, *verbose)
 	http.ListenAndServe("0.0.0.0:8080", nil)
 }
