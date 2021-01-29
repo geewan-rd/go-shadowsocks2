@@ -52,7 +52,7 @@ type packetConn struct {
 
 // NewPacketConn wraps a net.PacketConn with stream cipher encryption/decryption.
 func NewPacketConn(c net.PacketConn, ciph Cipher) net.PacketConn {
-	return &packetConn{PacketConn: c, Cipher: ciph, buf: make([]byte, 64*1024)}
+	return &packetConn{PacketConn: c, Cipher: ciph, buf: make([]byte, packetConnBufSize)}
 }
 
 func (c *packetConn) WriteTo(b []byte, addr net.Addr) (int, error) {

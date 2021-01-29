@@ -11,6 +11,19 @@ import (
 	"github.com/shadowsocks/go-shadowsocks2/shadowstream"
 )
 
+func SetStreamBufferSize(size uint) {
+	shadowstream.SetConnBufferSize(size)
+}
+
+func SetAeadPayloadSize(size uint) {
+	shadowaead.SetPayloadSize(size)
+}
+
+func SetPacketConnBufferSize(size uint) {
+	shadowstream.SetPacketConnBufSize(size)
+	shadowaead.SetPacketConnBufSize(size)
+}
+
 type Cipher interface {
 	StreamConnCipher
 	PacketConnCipher

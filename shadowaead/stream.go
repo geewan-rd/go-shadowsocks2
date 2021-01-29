@@ -8,9 +8,6 @@ import (
 	"net"
 )
 
-// payloadSizeMask is the maximum size of payload in bytes.
-const payloadSizeMask = 0x3FFF // 16*1024 - 1
-
 type writer struct {
 	io.Writer
 	cipher.AEAD

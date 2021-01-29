@@ -66,8 +66,7 @@ type packetConn struct {
 
 // NewPacketConn wraps a net.PacketConn with cipher
 func NewPacketConn(c net.PacketConn, ciph Cipher) net.PacketConn {
-	const maxPacketSize = 64 * 1024
-	return &packetConn{PacketConn: c, Cipher: ciph, buf: make([]byte, maxPacketSize)}
+	return &packetConn{PacketConn: c, Cipher: ciph, buf: make([]byte, packetConnBufSize)}
 }
 
 // WriteTo encrypts b and write to addr using the embedded PacketConn.

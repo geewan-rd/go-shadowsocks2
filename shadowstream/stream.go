@@ -16,7 +16,7 @@ type writer struct {
 
 // NewWriter wraps an io.Writer with stream cipher encryption.
 func NewWriter(w io.Writer, s cipher.Stream) io.Writer {
-	return &writer{Writer: w, Stream: s, buf: make([]byte, bufSize)}
+	return &writer{Writer: w, Stream: s, buf: make([]byte, connBufSize)}
 }
 
 func (w *writer) ReadFrom(r io.Reader) (n int64, err error) {
@@ -56,7 +56,7 @@ type reader struct {
 
 // NewReader wraps an io.Reader with stream cipher decryption.
 func NewReader(r io.Reader, s cipher.Stream) io.Reader {
-	return &reader{Reader: r, Stream: s, buf: make([]byte, bufSize)}
+	return &reader{Reader: r, Stream: s, buf: make([]byte, connBufSize)}
 }
 
 func (r *reader) Read(b []byte) (int, error) {
@@ -107,7 +107,7 @@ func NewConn(c net.Conn, ciph Cipher) net.Conn {
 
 func (c *conn) initReader() error {
 	if c.r == nil {
-		buf := make([]byte, bufSize)
+		buf := make([]byte, connBufSize)
 		iv := buf[:c.IVSize()]
 		if _, err := io.ReadFull(c.Conn, iv); err != nil {
 			return err
@@ -137,7 +137,7 @@ func (c *conn) WriteTo(w io.Writer) (int64, error) {
 
 func (c *conn) initWriter() error {
 	if c.w == nil {
-		buf := make([]byte, bufSize)
+		buf := make([]byte, connBufSize)
 		iv := buf[:c.IVSize()]
 		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 			return err
@@ -167,7 +167,7 @@ func (c *conn) ReadFrom(r io.Reader) (int64, error) {
 	iv := make([]byte, c.IVSize())
 	if c.w == nil {
 		var buffer bytes.Buffer
-		buf := make([]byte, bufSize)
+		buf := make([]byte, connBufSize)
 		iv = buf[:c.IVSize()]
 		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 			return 0, err
