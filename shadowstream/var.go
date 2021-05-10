@@ -1,5 +1,3 @@
-// +build !darwin
-
 package shadowstream
 
 var connBufSize uint = 8 * 1024
