@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -221,6 +222,52 @@ func StopTCPUDP() (err error) {
 	return
 }
 
+var isStopAutoGC bool = false
+
+func autoGC(start bool) {
+	isStopAutoGC = !start
+	for {
+		time.Sleep(1000 * time.Millisecond)
+		runtime.GC()
+		if isStopAutoGC {
+			break
+		}
+	}
+}
+func AutoGC(start bool) {
+	go autoGC(start)
+}
+
+var first uint64 = 0
+var count uint64 = 0
+
+func byteToMB(m uint64) float64 {
+	return float64(m) / 1024 / 1024
+}
+
+type MemeryInfo struct {
+	FistAlloc    float64
+	CurrentAlloc float64
+	OffsetAlloc  float64
+}
+
+func PrintMemStats() *MemeryInfo {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	if first == 0 {
+		first = ms.Alloc
+	}
+	value := ms.Alloc - first
+	count += 1
+	// log.Printf("count(%d):当前占用内存:%f(mb) 已分配对象的字节数:%f(mb) HeapIdle:%f(mb) HeapReleased:%f(mb)", count, byteToMB(value), byteToMB(ms.Alloc), byteToMB(ms.HeapIdle), byteToMB(ms.HeapReleased))
+	newInfo := MemeryInfo{
+		FistAlloc:    byteToMB(first),
+		CurrentAlloc: byteToMB(ms.Alloc),
+		OffsetAlloc:  byteToMB(value),
+	}
+	return &newInfo
+}
+
 // StartWebsocket 启动SSW
 func StartWebsocket(server, URL, username string, serverPort int, method string, password string, localPort int, verbose bool) error {
 	config.Verbose = verbose
@@ -274,6 +321,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
