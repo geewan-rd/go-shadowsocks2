@@ -43,6 +43,9 @@ build-android:
 build-ios:
 	rm -rf output/ios
 	mkdir -p output/ios
+	export CGO_ENABLED=1
+	export GOARCH=amd64
+	# go build -buildmode=c-archive -o shadowsocks.a
 	gomobile bind -target ios -o output/ios/shadowsocks.framework github.com/shadowsocks/go-shadowsocks2/clientlib
 	cd output && zip -r shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip ios
 

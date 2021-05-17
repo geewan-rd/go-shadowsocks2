@@ -116,6 +116,14 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, remoteAddr net.Addr) 
 	return nil
 }
 
+var (
+	Logger *log.Logger
+)
+
+func logf(f string, v ...interface{}) {
+	Logger.Printf(f, v...)
+}
+
 // ReadFrom reads a packet from the connection,
 // copying the payload into p. It returns the number of
 // bytes copied into p and the return address that
@@ -130,6 +138,7 @@ func (ws *WSPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	if ws.closed {
 		return 0, nil, io.EOF
 	}
+
 	select {
 	case <-ws.readCtx.Done():
 		return 0, nil, io.EOF
@@ -138,6 +147,7 @@ func (ws *WSPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 			return 0, packet.remoteAddr, errors.New("Buffer too short")
 		}
 		copy(p, packet.buff)
+		logf("读取数据长度：%d", packet.len)
 		return packet.len, packet.remoteAddr, nil
 	}
 }

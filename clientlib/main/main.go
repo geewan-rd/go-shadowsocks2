@@ -44,7 +44,7 @@ func main() {
 	// h, p, _ := net.SplitHostPort(*addr)
 	// port, _ := strconv.Atoi(p)
 	shadowsocks2.SetWSTimeout(5000)
-	isSuccess := shadowsocks2.StartWebsocket("line-gzm02.transocks.com.cn", "/proxy", "ROl414ZzDG16UbSe", 2052, "chacha20-ietf-poly1305", "og86nkanSVbVz6GZ", 6666, *verbose)
+	isSuccess := shadowsocks2.StartWebsocket("line-gzm02.transocks.com.cn", "/proxy", "1t2VG5GNS2T2LSnZ", 2052, "chacha20-ietf-poly1305", "fKAOtsUSB2HdIfO0", 6666, *verbose)
 	log.Printf("%v", isSuccess)
 	// http.ListenAndServe("0.0.0.0:8080", nil)
 	for {

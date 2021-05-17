@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -37,8 +38,8 @@ var (
 	logger       = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
 	stat         = freconn.NewStat()
 	client       *Client
-	localIP      string
-	tcpConnecter = &TCPConnecter{}
+	localIP      string = "0.0.0.0"
+	tcpConnecter        = &TCPConnecter{}
 )
 
 var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
@@ -64,6 +65,7 @@ func SetlogOut(path string) error {
 	}
 	logWriter = f
 	logger.SetOutput(logWriter)
+	websocket.Logger = logger
 	return nil
 }
 
@@ -92,6 +94,9 @@ func SetLocalIP(ip string) error {
 	tcpConnecter.localTCPAddr = TCPAddr
 	localIP = ip
 	return nil
+}
+func SetSSWLocalIP(ip string) {
+	localIP = ip
 }
 
 func StartUDPTunnel(server string, serverPort int, method string, password string, tunnel string) error {
@@ -179,7 +184,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	}
 
 	socks.UDPEnabled = true
-	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
+	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
 	client = &Client{
 		MaxConnCount: config.MaxConnCount,
 	}
@@ -224,18 +229,21 @@ func StopTCPUDP() (err error) {
 
 var isStopAutoGC bool = false
 
-func autoGC(start bool) {
+func autoGC(start bool, millisecond int) {
 	isStopAutoGC = !start
 	for {
-		time.Sleep(1000 * time.Millisecond)
+
+		time.Sleep(100 * time.Millisecond)
 		runtime.GC()
+		debug.FreeOSMemory()
 		if isStopAutoGC {
 			break
 		}
 	}
 }
-func AutoGC(start bool) {
-	go autoGC(start)
+func AutoGC(start bool, millisecond int) {
+
+	go autoGC(start, millisecond)
 }
 
 var first uint64 = 0
@@ -291,7 +299,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 		return err
 	}
 	socks.UDPEnabled = true
-	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
+	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
 	client = &Client{
 		MaxConnCount: config.MaxConnCount,
 	}
@@ -372,7 +380,7 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 		return
 	}
 	socks.UDPEnabled = true
-	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
+	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
 	client = &Client{
 		MaxConnCount: config.MaxConnCount,
 	}
