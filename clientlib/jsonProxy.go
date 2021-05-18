@@ -1,4 +1,4 @@
-package jsonProxy
+package TrojanGO
 
 import (
 	"encoding/json"
@@ -10,6 +10,10 @@ import (
 	_ "github.com/p4gefau1t/trojan-go/proxy/client"
 )
 
+func GoStartProxy(localAddr string, localPort int, remoteAddr string, remotePort int, password string) {
+	go StartProxy(localAddr, localPort, remoteAddr, remotePort, password)
+
+}
 func StartProxy(localAddr string, localPort int, remoteAddr string, remotePort int, password string) error {
 	jsonMap := map[string]interface{}{}
 	jsonMap["run_type"] = "client"
