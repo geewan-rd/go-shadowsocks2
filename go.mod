@@ -1,24 +1,23 @@
-module github.com/shadowsocks/go-shadowsocks2
+module github.com/p4gefau1t/trojan-go
 
-go 1.12
+go 1.16
+
 require (
-	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
-	github.com/fregie/mpx v0.2.3
-	github.com/gorilla/websocket v1.4.2
-	github.com/juju/ratelimit v1.0.1
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d
-	golang.org/x/mobile v0.0.0-20210220033013-bdb1ca9a1e08 // indirect
-	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-)
-
-replace (
-	// github.com/fregie/mpx => ../mpx
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 => github.com/golang/crypto v0.0.0-20190308221718-c2843e01d9a2
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734 => github.com/golang/crypto v0.0.0-20190426145343-a29dc8fdc734
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3 => github.com/golang/net v0.0.0-20190404232315-eb5bcb51f2a3
-	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a => github.com/golang/sys v0.0.0-20190215142949-d0b11bdaac8a
-	golang.org/x/sys v0.0.0-20190412213103-97732733099d => github.com/golang/sys v0.0.0-20190412213103-97732733099d
-	golang.org/x/text v0.3.0 => github.com/golang/text v0.3.0
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/refraction-networking/utls v0.0.0-20201210053706-2179f286686b
+	github.com/shadowsocks/go-shadowsocks2 v0.1.5
+	github.com/smartystreets/goconvey v1.6.4
+	github.com/stretchr/testify v1.7.0
+	github.com/txthinking/runnergroup v0.0.0-20210326110939-37fc67d0da7c // indirect
+	github.com/txthinking/socks5 v0.0.0-20210326104807-61b5745ff346
+	github.com/txthinking/x v0.0.0-20210326105829-476fab902fbe // indirect
+	github.com/v2fly/v2ray-core/v4 v4.38.3
+	github.com/xtaci/smux v1.5.15
+	golang.org/x/crypto v0.0.0-20210503195802-e9a32991a82e
+	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
+	google.golang.org/grpc v1.37.0
+	google.golang.org/protobuf v1.26.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )

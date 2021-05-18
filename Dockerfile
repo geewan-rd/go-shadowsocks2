@@ -1,20 +1,25 @@
-FROM golang:1.12.7-alpine3.10 AS builder
+FROM golang:alpine AS builder
+WORKDIR /
+ARG REF
+RUN apk add git make &&\
+    git clone https://github.com/p4gefau1t/trojan-go.git
+RUN if [[ -z "${REF}" ]]; then \
+        echo "No specific commit provided, use the latest one." \
+    ;else \
+        echo "Use commit ${REF}" &&\
+        cd trojan-go &&\
+        git checkout ${REF} \
+    ;fi
+RUN cd trojan-go &&\
+    make &&\
+    wget https://github.com/v2fly/domain-list-community/raw/release/dlc.dat -O build/geosite.dat &&\
+    wget https://github.com/v2fly/geoip/raw/release/geoip.dat -O build/geoip.dat
 
-ENV GO111MODULE on
-ENV GOPROXY https://goproxy.io
+FROM alpine
+WORKDIR /
+RUN apk add --no-cache tzdata ca-certificates
+COPY --from=builder /trojan-go/build /usr/local/bin/
+COPY --from=builder /trojan-go/example/server.json /etc/trojan-go/config.json
 
-RUN apk upgrade \
-    && apk add git \
-    && go get github.com/shadowsocks/go-shadowsocks2
-
-FROM alpine:3.10 AS dist
-
-LABEL maintainer="mritd <mritd@linux.com>"
-
-RUN apk upgrade \
-    && apk add tzdata \
-    && rm -rf /var/cache/apk/*
-
-COPY --from=builder /go/bin/go-shadowsocks2 /usr/bin/shadowsocks
-
-ENTRYPOINT ["shadowsocks"]
+ENTRYPOINT ["/usr/local/bin/trojan-go", "-config"]
+CMD ["/etc/trojan-go/config.json"]
