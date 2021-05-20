@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"runtime"
+	"runtime/debug"
 	"time"
 
 	"sync"
@@ -20,6 +22,22 @@ const (
 )
 
 const udpBufSize = 64 * 1024
+
+var newCount = 0
+
+func newBuff() []byte {
+	buf := make([]byte, 10000)
+	newCount += 1
+	logf("newbuff newcount(%d)", newCount)
+	var count = newCount
+	runtime.SetFinalizer(&buf, func(buf *[]byte) {
+		logf("newcount(%d),内存回收", count)
+		// newCount -= 1
+	})
+	runtime.GC()
+	debug.FreeOSMemory()
+	return buf
+}
 
 // Listen on laddr for UDP packets, encrypt and send to server to reach target.
 func udpLocal(laddr string, server net.Addr, target string, connecter PcConnecter, shadow func(net.PacketConn) net.PacketConn) {
@@ -39,12 +57,15 @@ func udpLocal(laddr string, server net.Addr, target string, connecter PcConnecte
 	defer c.Close()
 
 	nm := newNATmap(10 * time.Second)
-	buf := make([]byte, udpBufSize)
+
+	buf := newBuff()
 	copy(buf, tgt)
 
-	logf("UDP tunnel %s <-> %s <-> %s", laddr, server, target)
+	logf("222UDP tunnel %s <-> %s <-> %s", laddr, server, target)
 	for {
+
 		n, raddr, err := c.ReadFrom(buf[len(tgt):])
+		logf("udpLocal-ReadFrom:%d", len(buf))
 		if err != nil {
 			logf("UDP local read error: %v", err)
 			continue
@@ -98,7 +119,6 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 		defer socksPc.Close()
 
 		nm := newNATmap(config.UDPTimeout)
-		buf := make([]byte, udpBufSize)
 
 		defer func() { runningUPD = false }()
 		for {
@@ -107,7 +127,9 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 				logf("exit ss\n")
 				return
 			default:
+				buf := newBuff()
 				n, raddr, err := socksPc.ReadFrom(buf)
+				logf("newcount(%d)  udpSocksLocal-ReadFrom:%d", newCount, n)
 				if err != nil {
 					logf("UDP local read error: %v", err)
 					continue
@@ -119,7 +141,7 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 						logf("UDP local listen error: %v", err)
 						continue
 					}
-					logf("UDP socks tunnel %s <-> %s <-> %s", laddr, server, socks.Addr(buf[3:]))
+					logf("111UDP socks tunnel %s <-> %s <-> %s", laddr, server, socks.Addr(buf[3:]))
 					pc = shadow(pc)
 					nm.Add(raddr, socksPc, pc, socksClient)
 				}
@@ -161,11 +183,12 @@ func udpRemote(addr string, shadow func(net.PacketConn) net.PacketConn) {
 	c = shadow(c)
 
 	nm := newNATmap(config.UDPTimeout)
-	buf := make([]byte, udpBufSize)
 
 	logf("listening UDP on %s", addr)
 	for {
+		buf := newBuff()
 		n, raddr, err := c.ReadFrom(buf)
+		logf("udpRemote-ReadFrom:%d", len(buf))
 		if err != nil {
 			logf("UDP remote read error: %v", err)
 			continue
@@ -255,12 +278,17 @@ func (m *natmap) Add(peer net.Addr, dst, src net.PacketConn, role mode) {
 }
 
 // copy from src to dst at target with read timeout
+var copyCount = 0
+
 func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout time.Duration, role mode) error {
-	buf := make([]byte, udpBufSize)
 
 	for {
+		buf := newBuff()
+		copyCount += 1
 		src.SetReadDeadline(time.Now().Add(timeout))
 		n, raddr, err := src.ReadFrom(buf)
+
+		logf("newcount(%d) copyCount(%d),timedCopy-ReadFrom:%d", newCount, copyCount, n)
 		if err != nil {
 			logf("readfrom err:%s", err)
 			return err
@@ -271,17 +299,20 @@ func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout 
 			srcAddr := socks.ParseAddr(raddr.String())
 			copy(buf[len(srcAddr):], buf[:n])
 			copy(buf, srcAddr)
+			logf("copyCount(%d),remoteServer:%d", copyCount, n)
 			_, err = dst.WriteTo(buf[:len(srcAddr)+n], target)
 		case relayClient: // client -> user: strip original packet source
 			srcAddr := socks.SplitAddr(buf[:n])
 			logf("write to %s", target.String())
 			_, err = dst.WriteTo(buf[len(srcAddr):n], target)
+			logf("copyCount(%d),relayClient:%d", copyCount, n)
 		case socksClient: // client -> socks5 program: just set RSV and FRAG = 0
 			// srcAddr := socks.ParseAddr(raddr.String())
 			// copy(buf[len(srcAddr):], buf[:n])
 			// copy(buf, srcAddr)
 			// _, err = dst.WriteTo(append([]byte{0, 0, 0}, buf[:len(srcAddr)+n]...), target)
 			_, err = dst.WriteTo(append([]byte{0, 0, 0}, buf[:n]...), target)
+			logf("copyCount(%d),socksClient:%d", copyCount, n)
 		}
 
 		if err != nil {

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"runtime"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -235,11 +234,17 @@ func autoGC(start bool, millisecond int) {
 
 		time.Sleep(100 * time.Millisecond)
 		runtime.GC()
-		debug.FreeOSMemory()
+		// debug.FreeOSMemory()
 		if isStopAutoGC {
 			break
 		}
 	}
+}
+func DebugGC1() {
+	// debug.SetMaxThreads(5)
+
+	// debug.SetMaxStack(1024 * 1024)
+	// debug.SetGCPercent(1)
 }
 func AutoGC(start bool, millisecond int) {
 

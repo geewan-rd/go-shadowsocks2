@@ -209,8 +209,13 @@ type connLastSeen struct {
 	lastSeen time.Time
 }
 
+var readCount = 1
+var writeCount = 1
+
 func (c *connLastSeen) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
+	readCount += 1
+	logf("readCount:%d,length:%d", readCount, len(b))
 	if err != nil {
 		c.lastSeen = time.Now()
 	}
@@ -219,6 +224,8 @@ func (c *connLastSeen) Read(b []byte) (n int, err error) {
 
 func (c *connLastSeen) Write(p []byte) (n int, err error) {
 	n, err = c.Conn.Write(p)
+	writeCount += 1
+	logf("readCount:%d,length:%d", writeCount, len(p))
 	if err != nil {
 		c.lastSeen = time.Now()
 	}
