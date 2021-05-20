@@ -36,8 +36,12 @@ clean:
 build-android:
 	rm -rf output/android
 	mkdir -p output/android
-	gomobile bind -target android -o output/android/trojan_go.framework github.com/p4gefau1t/trojan-go/clientlib
-	cd output && zip -r shadowsocks_android_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip android
+	# gomobile bind -target android -o output/android/trojan_go.framework github.com/p4gefau1t/trojan-go/clientlib
+
+	gomobile bind -target android/arm64,android/arm -o output/android/trojan_go.aar github.com/p4gefau1t/trojan-go/clientlib
+
+	cd output && zip -r trojan-go_android_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip android
+	
 	# gomobile bind -target android -o output/android/tun2socks.aar github.com/geewan-rd/transocks-electron/accel/gotun2socks
 
 build-ios:

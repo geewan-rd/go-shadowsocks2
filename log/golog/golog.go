@@ -50,12 +50,12 @@ type Prefix struct {
 
 var (
 	// Plain prefix template
-	plainFatal = []byte("[FATAL] ")
-	plainError = []byte("[ERROR] ")
-	plainWarn  = []byte("[WARN]  ")
-	plainInfo  = []byte("[INFO]  ")
-	plainDebug = []byte("[DEBUG] ")
-	plainTrace = []byte("[TRACE] ")
+	plainFatal = []byte("[go FATAL] ")
+	plainError = []byte("[go ERROR] ")
+	plainWarn  = []byte("[go WARN]  ")
+	plainInfo  = []byte("[go INFO]  ")
+	plainDebug = []byte("[go DEBUG] ")
+	plainTrace = []byte("[go TRACE] ")
 
 	// FatalPrefix show fatal prefix
 	FatalPrefix = Prefix{
