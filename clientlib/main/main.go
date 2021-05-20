@@ -8,16 +8,16 @@ import (
 
 	TrojanGO "github.com/p4gefau1t/trojan-go/clientlib"
 	"github.com/p4gefau1t/trojan-go/log"
-	_ "github.com/p4gefau1t/trojan-go/log/golog"
+	// _ "github.com/p4gefau1t/trojan-go/log/golog"
 )
 
 func main() {
 
-	go TrojanGO.StartProxy("127.0.0.1", 6666, "47.242.176.86", 443, "fobwifi")
+	go TrojanGO.StartProxy("127.0.0.1", 7777, "47.242.176.86", 443, "fobwifi")
 
 	var first runtime.MemStats
 	runtime.ReadMemStats(&first)
-	// log.SetLogLevel(0)
+	log.SetLogLevel(0)
 	debug.SetGCPercent(1)
 
 	for {
