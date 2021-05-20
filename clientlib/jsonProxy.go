@@ -29,17 +29,31 @@ func StartProxy(localAddr string, localPort int, remoteAddr string, remotePort i
 		log.Fatalf("Failed to read from stdin: %s", e.Error())
 		return e
 	}
+	return startWithData(data)
+}
+func startWithData(data []byte) error {
 	proxy, err := proxy.NewProxyFromConfigData(data, true)
 	if err != nil {
 		fmt.Print("error:%@", err.Error())
 		log.Fatal(err)
-		return e
+		return err
 	}
+	currentProxy = proxy
 	err = proxy.Run()
 	if err != nil {
 		log.Fatal(err)
-		return e
+		return err
 	}
-
 	return nil
+}
+
+var currentProxy *proxy.Proxy
+
+func GOStartWithData(data []byte) {
+	go startWithData(data)
+}
+func StopProxy() {
+	if currentProxy != nil {
+		currentProxy
+	}
 }
