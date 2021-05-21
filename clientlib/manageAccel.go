@@ -68,6 +68,12 @@ func SetlogOut(path string) error {
 	return nil
 }
 
+// delete log 删除日志
+func DeleteLog(path string) error {
+	err := os.Remove(path)
+	return err
+}
+
 // FinishLog 停止记录日志，关闭对应文件
 func FinishLog() error {
 	if logWriter != nil {
