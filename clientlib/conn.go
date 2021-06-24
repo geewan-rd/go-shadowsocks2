@@ -2,13 +2,12 @@ package shadowsocks2
 
 import (
 	"errors"
-	"io"
 	"net"
-	"runtime"
 	"runtime/debug"
 	"sync"
 	"time"
 
+	"github.com/Jeffail/tunny"
 	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
 
@@ -18,7 +17,6 @@ type Client struct {
 	MaxConnCount int
 	connCount    int
 	mutex        sync.Mutex
-	ConnMap      sync.Map
 	closeTCP     bool
 }
 
@@ -40,25 +38,36 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 	}
 	c.TCPRuning = true
 	go func() {
-		defer func() { c.TCPRuning = false }()
-		connCh := make(chan net.Conn)
-		defer close(connCh)
-		if c.MaxConnCount > 0 {
-			for i := 0; i < c.MaxConnCount; i++ {
-				go func() {
-					for conn := range connCh {
-						lAddr := conn.RemoteAddr().String()
-						c.ConnMap.Store(lAddr, conn)
-						c.connCount++
-						// logf("Conn count++: %d", c.connCount)
-						c.handleConn(conn, connecter, shadow)
-						c.connCount--
-						// logf("Conn count--: %d", c.connCount)
-						c.ConnMap.Delete(lAddr)
-					}
-				}()
+		var connArray = make([]net.Conn, c.MaxConnCount)
+		addConn := func(conn net.Conn, index int) {
+			if c.MaxConnCount > 0 {
+				c.mutex.Lock()
+				con := connArray[index]
+				if con != nil {
+					con.Close()
+				}
+				connArray[index] = conn
+				c.mutex.Unlock()
 			}
 		}
+		var pool *tunny.Pool
+		if c.MaxConnCount > 0 {
+			pool = tunny.NewFunc(c.MaxConnCount+2, func(p interface{}) interface{} {
+				f := p.(func())
+				f()
+				return true
+			})
+		}
+
+		defer func() {
+			c.TCPRuning = false
+			c.mutex.Lock()
+			for _, con := range connArray {
+				con.Close()
+			}
+			c.mutex.Unlock()
+		}()
+		var connCount = 0
 		for {
 			lc, err := c.TCPListener.Accept()
 			if err != nil {
@@ -69,43 +78,21 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 				}
 				continue
 			}
-			lc.(*net.TCPConn).SetKeepAlive(true)
-			if c.MaxConnCount == 0 {
+			var currnetIndex = 0
+			if c.MaxConnCount > 0 {
+				currnetIndex = connCount % c.MaxConnCount
+			}
+			addConn(lc, currnetIndex)
+			connCount += 1
+			lc.(*net.TCPConn).SetKeepAlive(false)
+			if pool == nil {
 				go c.handleConn(lc, connecter, shadow)
 			} else {
-				if c.connCount >= c.MaxConnCount {
-					go func() {
-						c.mutex.Lock()
-						defer c.mutex.Unlock()
-						var lastSeen *connLastSeen
-						var key interface{}
-						c.ConnMap.Range(func(k, v interface{}) bool {
-							conn := v.(*connLastSeen)
-							if lastSeen == nil {
-								lastSeen = conn
-								key = k
-								return true
-							}
-							if conn.lastSeen.Before(lastSeen.lastSeen) {
-								lastSeen = conn
-								key = k
-							}
-							return true
-						})
-						if lastSeen != nil {
-							lastSeen.Close()
-							lastSeen.SetDeadline(time.Now())
-							c.ConnMap.Delete(key)
-						}
-					}()
-				}
-				lastSeenConn := &connLastSeen{
-					Conn:     lc,
-					lastSeen: time.Now(),
-				}
-				connCh <- lastSeenConn
-
+				go pool.Process(func() {
+					c.handleConn(lc, connecter, shadow)
+				})
 			}
+
 		}
 	}()
 
@@ -113,12 +100,12 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 }
 
 func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgrade) {
-	defer func() {
-		if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
-			runtime.GC()
-			debug.FreeOSMemory()
-		}
-	}()
+	// defer func() {
+	// 	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+	// 		runtime.GC()
+	// 		debug.FreeOSMemory()
+	// 	}
+	// }()
 	defer lc.Close()
 	tgt, err := socks.Handshake(lc)
 	if err != nil {
@@ -139,6 +126,8 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 		return
 	}
 	rc, err := connecter.Connect()
+	// log.Printf("web addr:%s", rc.LocalAddr())
+	// log.Printf("accept addr:%s", lc.RemoteAddr())
 	if err != nil {
 		logf("Connect to %s failed: %s", connecter.ServerHost(), err)
 		return
@@ -165,28 +154,34 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 // relay copies between left and right bidirectionally. Returns number of
 // bytes copied from right to left, from left to right, and any error occurred.
 func relay(left, right net.Conn) (int64, int64, error) {
-	type res struct {
-		N   int64
-		Err error
+
+	// interval := 2 * time.Second
+	// heartTimer := time.NewTimer(interval)
+
+	copyFunc := func(left net.Conn, right net.Conn) {
+		buf := make([]byte, 512)
+		close := func() {
+			left.Close()
+			right.Close()
+			debug.FreeOSMemory()
+		}
+		for {
+			n, err := left.Read(buf)
+			if err != nil {
+				close()
+				return
+			}
+			n, err = right.Write(buf[:n])
+			if err != nil {
+				close()
+				return
+			}
+		}
 	}
-	ch := make(chan res)
+	go copyFunc(left, right)
+	copyFunc(right, left)
 
-	go func() {
-		n, err := io.Copy(right, left)
-		right.SetDeadline(time.Now()) // wake up the other goroutine blocking on right
-		left.SetDeadline(time.Now())  // wake up the other goroutine blocking on left
-		ch <- res{n, err}
-	}()
-
-	n, err := io.Copy(left, right)
-	right.SetDeadline(time.Now()) // wake up the other goroutine blocking on right
-	left.SetDeadline(time.Now())  // wake up the other goroutine blocking on left
-	rs := <-ch
-
-	if err == nil {
-		err = rs.Err
-	}
-	return n, rs.N, err
+	return 0, 0, errors.New("closed")
 }
 
 func (c *Client) StopsocksConnLocal() error {

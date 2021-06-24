@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"runtime"
-	"runtime/debug"
 	"time"
 
 	"sync"
@@ -21,21 +19,12 @@ const (
 	socksClient
 )
 
-const udpBufSize = 64 * 1024
+const udpBufSize = 1 * 1024
 
 var newCount = 0
 
 func newBuff() []byte {
-	buf := make([]byte, 10000)
-	newCount += 1
-	logf("newbuff newcount(%d)", newCount)
-	var count = newCount
-	runtime.SetFinalizer(&buf, func(buf *[]byte) {
-		logf("newcount(%d),内存回收", count)
-		// newCount -= 1
-	})
-	runtime.GC()
-	debug.FreeOSMemory()
+	buf := make([]byte, udpBufSize)
 	return buf
 }
 

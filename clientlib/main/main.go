@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"runtime"
 	"time"
 
+	"net/http"
 	_ "net/http/pprof"
 
 	shadowsocks2 "github.com/shadowsocks/go-shadowsocks2/clientlib"
@@ -44,9 +46,21 @@ func main() {
 	// h, p, _ := net.SplitHostPort(*addr)
 	// port, _ := strconv.Atoi(p)
 	shadowsocks2.SetWSTimeout(5000)
-	isSuccess := shadowsocks2.StartWebsocketMpx("singapore09.tikvpn.in", "/proxy", "XaCNEXz9fV1g5x01", 80, "chacha20-ietf-poly1305", "hbhx4vu6i1MMZb8j", 7777, 0, *verbose)
+	shadowsocks2.SetMaxConnCount(20)
+	var jsons = map[string]interface{}{}
+	jsons["server"] = "120.232.193.224"
+	jsons["url"] = "/proxy"
+	jsons["username"] = "69l4T01rkpY9V32O"
+	jsons["serverPort"] = 2052
+	jsons["method"] = "aes-256-cfb"
+	jsons["password"] = "oVIsnn6Ryt3Zfb14"
+	jsons["localPort"] = 7777
+	jsons["verbose"] = *verbose
+	jsons["pprofPort"] = 6060
+	dataType, _ := json.Marshal(jsons)
+	isSuccess := shadowsocks2.StartWebsocketWithjson(dataType)
 	log.Printf("%v", isSuccess)
-	// http.ListenAndServe("0.0.0.0:8080", nil)
+	http.ListenAndServe("0.0.0.0:6060", nil)
 	for {
 		traceMemStats()
 		runtime.GC()

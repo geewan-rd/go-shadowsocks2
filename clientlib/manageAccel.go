@@ -1,6 +1,7 @@
 package shadowsocks2
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -44,7 +46,7 @@ var (
 var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
 
 func logf(f string, v ...interface{}) {
-	if config.Verbose {
+	if config.Verbose && logger != nil {
 		logger.Printf(f, v...)
 	}
 }
@@ -77,6 +79,10 @@ func DeleteLog(path string) error {
 // FinishLog 停止记录日志，关闭对应文件
 func FinishLog() error {
 	if logWriter != nil {
+		defer func() {
+			logWriter = nil
+			logger = nil
+		}()
 		return logWriter.Close()
 	}
 	return errors.New("log writter is nil")
@@ -300,6 +306,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 	if localPort <= 0 || localPort > 65535 {
 		return errors.New("local port must be between 0 and 65535")
 	}
+	debug.SetGCPercent(10)
 
 	addr := fmt.Sprintf("%s:%d", server, serverPort)
 	cipher := method
@@ -342,6 +349,33 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 	}
 
 	return nil
+}
+
+// StartWebsocket 启动SSW
+type sswconf struct {
+	Server, Url, Username            string
+	ServerPort, LocalPort, PprofPort int
+	Method, Password                 string
+	Verbose                          bool
+}
+
+func StartWebsocketWithjson(data []byte) error {
+
+	var conf sswconf
+	if err := json.Unmarshal(data, &conf); err != nil {
+		return err
+	}
+
+	// if conf.PprofPort > 0 {
+	// 	go func() {
+	// 		for {
+	// 			// http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", conf.PprofPort), nil)
+	// 		}
+	// 	}()
+
+	// }
+
+	return StartWebsocket(conf.Server, conf.Url, conf.Username, conf.ServerPort, conf.Method, conf.Password, conf.LocalPort, conf.Verbose)
 }
 
 // StopWebsocket 停止SSW
