@@ -159,7 +159,7 @@ func relay(left, right net.Conn) (int64, int64, error) {
 	// heartTimer := time.NewTimer(interval)
 
 	copyFunc := func(left net.Conn, right net.Conn) {
-		buf := make([]byte, 512)
+		buf := make([]byte, 512*2)
 		close := func() {
 			left.Close()
 			right.Close()

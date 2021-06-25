@@ -19,7 +19,7 @@ const (
 	socksClient
 )
 
-const udpBufSize = 1 * 1024
+const udpBufSize = 10 * 1024
 
 var newCount = 0
 
