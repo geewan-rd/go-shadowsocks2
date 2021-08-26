@@ -45,6 +45,10 @@ var (
 
 var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
 
+func init() {
+	websocket.Logger = logger
+}
+
 func logf(f string, v ...interface{}) {
 	if config.Verbose && logger != nil {
 		logger.Printf(f, v...)
@@ -215,7 +219,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 		newPC.EnableStat(stat)
 		return newPC
 	}
-	udpAddr, err := net.ResolveUDPAddr("UDP", addr)
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
 	}
