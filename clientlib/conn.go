@@ -100,12 +100,6 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 }
 
 func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgrade) {
-	// defer func() {
-	// 	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
-	// 		runtime.GC()
-	// 		debug.FreeOSMemory()
-	// 	}
-	// }()
 	defer lc.Close()
 	tgt, err := socks.Handshake(lc)
 	if err != nil {
@@ -125,6 +119,7 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 		logf("failed to get target address: %v", err)
 		return
 	}
+
 	rc, err := connecter.Connect()
 	// log.Printf("web addr:%s", rc.LocalAddr())
 	// log.Printf("accept addr:%s", lc.RemoteAddr())
@@ -134,8 +129,7 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 	}
 	defer rc.Close()
 
-	var remoteConn net.Conn
-	remoteConn = shadow(rc)
+	remoteConn := shadow(rc)
 	if _, err = remoteConn.Write(tgt); err != nil {
 		logf("failed to send target address: %v", err)
 		return

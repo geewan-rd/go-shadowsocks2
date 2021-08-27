@@ -135,6 +135,9 @@ var (
 )
 
 func logf(f string, v ...interface{}) {
+	if Logger == nil {
+		return
+	}
 	Logger.Printf(f, v...)
 }
 

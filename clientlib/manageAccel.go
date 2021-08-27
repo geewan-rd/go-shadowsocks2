@@ -46,7 +46,7 @@ var (
 var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
 
 func init() {
-	websocket.Logger = logger
+	// websocket.Logger = logger
 }
 
 func logf(f string, v ...interface{}) {
@@ -207,7 +207,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	stat.Reset()
 	tcpConnecter.Stat = stat
 
-	logf("Start shadowsocks on TCP, server: %s", tcpConnecter.ServerAddr)
+	logf("Start shadowsocks on TCP, server: %s local:%s", tcpConnecter.ServerAddr, tcpConnecter.localTCPAddr)
 	err = client.StartsocksConnLocal(localAddr, tcpConnecter, ciph.StreamConn)
 	if err != nil {
 		return err

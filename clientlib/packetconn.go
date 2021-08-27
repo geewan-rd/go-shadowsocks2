@@ -21,8 +21,6 @@ const (
 
 const udpBufSize = 10 * 1024
 
-var newCount = 0
-
 func newBuff() []byte {
 	buf := make([]byte, udpBufSize)
 	return buf
@@ -118,7 +116,7 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 			default:
 				buf := newBuff()
 				n, raddr, err := socksPc.ReadFrom(buf)
-				logf("newcount(%d)  udpSocksLocal-ReadFrom:%d", newCount, n)
+
 				if err != nil {
 					logf("UDP local read error: %v", err)
 					continue
@@ -130,7 +128,7 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 						logf("UDP local listen error: %v", err)
 						continue
 					}
-					logf("111UDP socks tunnel %s <-> %s <-> %s", laddr, server, socks.Addr(buf[3:]))
+
 					pc = shadow(pc)
 					nm.Add(raddr, socksPc, pc, socksClient)
 				}
@@ -267,19 +265,15 @@ func (m *natmap) Add(peer net.Addr, dst, src net.PacketConn, role mode) {
 }
 
 // copy from src to dst at target with read timeout
-var copyCount = 0
 
 func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout time.Duration, role mode) error {
 
 	for {
 		buf := newBuff()
-		copyCount += 1
 		src.SetReadDeadline(time.Now().Add(timeout))
 		n, raddr, err := src.ReadFrom(buf)
 
-		logf("newcount(%d) copyCount(%d),timedCopy-ReadFrom:%d", newCount, copyCount, n)
 		if err != nil {
-			logf("readfrom err:%s", err)
 			return err
 		}
 
@@ -288,20 +282,20 @@ func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout 
 			srcAddr := socks.ParseAddr(raddr.String())
 			copy(buf[len(srcAddr):], buf[:n])
 			copy(buf, srcAddr)
-			logf("copyCount(%d),remoteServer:%d", copyCount, n)
+
 			_, err = dst.WriteTo(buf[:len(srcAddr)+n], target)
 		case relayClient: // client -> user: strip original packet source
 			srcAddr := socks.SplitAddr(buf[:n])
 			logf("write to %s", target.String())
 			_, err = dst.WriteTo(buf[len(srcAddr):n], target)
-			logf("copyCount(%d),relayClient:%d", copyCount, n)
+
 		case socksClient: // client -> socks5 program: just set RSV and FRAG = 0
 			// srcAddr := socks.ParseAddr(raddr.String())
 			// copy(buf[len(srcAddr):], buf[:n])
 			// copy(buf, srcAddr)
 			// _, err = dst.WriteTo(append([]byte{0, 0, 0}, buf[:len(srcAddr)+n]...), target)
 			_, err = dst.WriteTo(append([]byte{0, 0, 0}, buf[:n]...), target)
-			logf("copyCount(%d),socksClient:%d", copyCount, n)
+
 		}
 
 		if err != nil {
