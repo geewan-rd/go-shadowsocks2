@@ -1,7 +1,6 @@
 package shadowsocks2
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -77,86 +76,6 @@ func udpLocal(laddr string, server net.Addr, target string, connecter PcConnecte
 			continue
 		}
 	}
-}
-
-type PcConnecter interface {
-	DialPacketConn(localAddr net.Addr) (net.PacketConn, error)
-}
-
-var (
-	chExit     = make(chan string)
-	socksPc    net.PacketConn
-	runningUPD = false
-)
-
-// Listen on laddr for Socks5 UDP packets, encrypt and send to server to reach target.
-func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow func(net.PacketConn) net.PacketConn) error {
-	if runningUPD {
-		stopUdpSocksLocal()
-		time.Sleep(500 * time.Microsecond)
-	}
-	var err error
-	socksPc, err = net.ListenPacket("udp", laddr)
-	if err != nil {
-		loge("UDP local listen error: %v", err)
-		return err
-	}
-	runningUPD = true
-	go func() {
-		defer socksPc.Close()
-
-		nm := newNATmap(config.UDPTimeout)
-
-		defer func() { runningUPD = false }()
-		for {
-			select {
-			case <-chExit:
-				logf("exit ss\n")
-				return
-			default:
-				buf := newBuff()
-				n, raddr, err := socksPc.ReadFrom(buf)
-
-				if err != nil {
-					loge("UDP local read error: %v", err)
-					continue
-				}
-				pc := nm.Get(raddr.String())
-				if pc == nil {
-					pc, err = connecter.DialPacketConn(&net.UDPAddr{})
-					if err != nil {
-						loge("UDP local listen error: %v", err)
-						continue
-					}
-
-					pc = shadow(pc)
-					nm.Add(raddr, socksPc, pc, socksClient)
-				}
-
-				_, err = pc.WriteTo(buf[3:n], server)
-				// _, err = pc.WriteTo(payload, tgtUDPAddr)
-				if err != nil {
-					loge("UDP local write error: %v", err)
-					continue
-				}
-			}
-		}
-	}()
-	return nil
-}
-
-func stopUdpSocksLocal() error {
-	if !runningUPD {
-		return errors.New("ss not running")
-	}
-	logf("stoping ss")
-	err := socksPc.Close()
-	if err != nil {
-		logf("stop ss err: %s", err)
-		return errors.New("stop ss err: " + err.Error())
-	}
-	chExit <- "exit"
-	return nil
 }
 
 // Listen on addr for encrypted packets and basically do UDP NAT.

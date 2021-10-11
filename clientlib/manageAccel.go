@@ -24,6 +24,7 @@ import (
 type ssConfig struct {
 	Verbose      bool
 	UDPTimeout   time.Duration
+	UDPBufSize   int
 	WSTimeout    time.Duration
 	MaxConnCount int
 }
@@ -31,6 +32,7 @@ type ssConfig struct {
 var config = ssConfig{
 	Verbose:    true,
 	UDPTimeout: 10 * time.Second,
+	UDPBufSize: 64 * 1024,
 	WSTimeout:  10 * time.Second,
 }
 
@@ -193,9 +195,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
-	client = &Client{
-		MaxConnCount: config.MaxConnCount,
-	}
+	client = NewClient(config.MaxConnCount, config.UDPBufSize, config.UDPTimeout)
 	tcpConnecter.ServerAddr = addr
 	stat.Reset()
 	tcpConnecter.Stat = stat
@@ -216,7 +216,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	if err != nil {
 		return err
 	}
-	err = udpSocksLocal(localAddr, udpAddr, &UDPConnecter{}, upgradePC)
+	err = client.udpSocksLocal(localAddr, udpAddr, &UDPConnecter{}, upgradePC)
 	if err != nil {
 		return err
 	}
@@ -228,10 +228,8 @@ func StopTCPUDP() (err error) {
 	stat.Reset()
 	if client != nil {
 		logf("Stop shadowsocks on TCP")
-		err = client.StopsocksConnLocal()
+		err = client.Stop()
 	}
-	logf("Stop shadowsocks on UDP")
-	err = stopUdpSocksLocal()
 	return
 }
 
@@ -315,9 +313,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 	}
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
-	client = &Client{
-		MaxConnCount: config.MaxConnCount,
-	}
+	client = NewClient(config.MaxConnCount, config.UDPBufSize, config.UDPTimeout)
 	stat.Reset()
 	connecter := &WSConnecter{
 		ServerAddr: addr,
@@ -340,7 +336,7 @@ func StartWebsocket(server, URL, username string, serverPort int, method string,
 	wsAddr := websocket.WSAddr{
 		URL: url.URL{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL},
 	}
-	err = udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
+	err = client.udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
 	if err != nil {
 		return err
 	}
@@ -381,14 +377,10 @@ func StopWebsocket() error {
 	var err error
 	if client != nil {
 		logf("Stop shadowsocks on websocket")
-		err = client.StopsocksConnLocal()
+		err = client.Stop()
 		if err != nil {
 			logf("Stop shadowsocks on websocket connction failed:%s", err)
 		}
-	}
-	err = stopUdpSocksLocal()
-	if err != nil {
-		logf("Stop shadowsocks on websocket packet connction failed:%s", err)
 	}
 	return err
 }
@@ -423,9 +415,7 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	}
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
-	client = &Client{
-		MaxConnCount: config.MaxConnCount,
-	}
+	client = NewClient(config.MaxConnCount, config.UDPBufSize, config.UDPTimeout)
 	stat.Reset()
 	connecter := &WSConnecter{
 		ServerAddr: addr,
@@ -455,7 +445,7 @@ func StartWebsocketMpx(server, URL, username string, serverPort int, method stri
 	wsAddr := websocket.WSAddr{
 		URL: url.URL{Scheme: "ws", Host: connecter.ServerAddr, Path: connecter.URL},
 	}
-	err = udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
+	err = client.udpSocksLocal(localAddr, &wsAddr, connecter, upgradePC)
 	if err != nil {
 		return
 	}
@@ -466,11 +456,7 @@ func StopWebsocketMpx() error {
 	stat.Reset()
 	if client != nil {
 		logf("Stop shadowsocks on websocket mpx")
-		client.StopsocksConnLocal()
-	}
-	err := stopUdpSocksLocal()
-	if err != nil {
-		logf("Stop shadowsocks on websocket packet connction failed:%s", err)
+		client.Stop()
 	}
 	if mc != nil {
 		mc.Close()
