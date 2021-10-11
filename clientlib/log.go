@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	logger = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
+	logger  = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
+	Verbose = true
 )
 
 func loge(s string, v ...interface{}) {
@@ -17,7 +18,7 @@ func loge(s string, v ...interface{}) {
 }
 
 func logf(f string, v ...interface{}) {
-	if config.Verbose && logger != nil {
+	if Verbose && logger != nil {
 		logger.Printf(f, v...)
 	}
 }

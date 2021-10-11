@@ -173,7 +173,7 @@ func (c *Client) udpSocksLocal(laddr string, server net.Addr, connecter PcConnec
 	go func() {
 		defer c.UDPSocksPC.Close()
 
-		nm := newNATmap(config.UDPTimeout)
+		nm := newNATmap(c.udpTimeout)
 		buf := make([]byte, udpBufSize)
 
 		for {

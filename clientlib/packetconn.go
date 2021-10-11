@@ -79,7 +79,7 @@ func udpLocal(laddr string, server net.Addr, target string, connecter PcConnecte
 }
 
 // Listen on addr for encrypted packets and basically do UDP NAT.
-func udpRemote(addr string, shadow func(net.PacketConn) net.PacketConn) {
+func (client *SSClient) udpRemote(addr string, shadow func(net.PacketConn) net.PacketConn) {
 	c, err := net.ListenPacket("udp", addr)
 	if err != nil {
 		logf("UDP remote listen error: %v", err)
@@ -88,7 +88,7 @@ func udpRemote(addr string, shadow func(net.PacketConn) net.PacketConn) {
 	defer c.Close()
 	c = shadow(c)
 
-	nm := newNATmap(config.UDPTimeout)
+	nm := newNATmap(client.config.UDPTimeout)
 
 	logf("listening UDP on %s", addr)
 	for {

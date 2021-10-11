@@ -67,7 +67,8 @@ func main() {
 	// dataType, _ := json.Marshal(jsons)
 	// isSuccess := shadowsocks2.StartWebsocketWithjson(dataType)
 	log.Printf("%v", "s")
-	shadowsocks2.StartTCPUDP("92.223.65.196", 38967, "aes-256-cfb", "qSh1sXqVsY6n3I7Y", 7777, false)
+	c := &shadowsocks2.SSClient{}
+	c.StartTCPUDP("92.223.65.196", 38967, "aes-256-cfb", "qSh1sXqVsY6n3I7Y", 7777, false)
 	http.ListenAndServe("0.0.0.0:6060", nil)
 	for {
 		traceMemStats()
