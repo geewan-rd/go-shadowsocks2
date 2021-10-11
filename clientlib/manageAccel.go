@@ -36,7 +36,6 @@ var config = ssConfig{
 
 var (
 	logWriter    = os.Stdout
-	logger       = log.New(logWriter, "[shadowsocks]", log.LstdFlags)
 	stat         = freconn.NewStat()
 	client       *Client
 	localIP      string = "0.0.0.0"
@@ -47,12 +46,6 @@ var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
 
 func init() {
 	// websocket.Logger = logger
-}
-
-func logf(f string, v ...interface{}) {
-	if config.Verbose && logger != nil {
-		logger.Printf(f, v...)
-	}
 }
 
 // SetlogOut 设置websocket timeout，单位 ms, 默认 10s

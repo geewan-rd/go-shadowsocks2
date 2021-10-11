@@ -33,7 +33,7 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 	var err error
 	c.TCPListener, err = net.Listen("tcp", addr)
 	if err != nil {
-		logf("failed to listen on %s: %v", addr, err)
+		loge("failed to listen on %s: %v", addr, err)
 		return err
 	}
 	c.TCPRuning = true
@@ -71,11 +71,11 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 		for {
 			lc, err := c.TCPListener.Accept()
 			if err != nil {
-				logf("failed to accept: %s", err)
 				if c.closeTCP {
-					logf("tcp ss stoped")
+					loge("tcp ss stoped")
 					break
 				}
+				loge("failed to accept: %s", err)
 				continue
 			}
 			var currnetIndex = 0
@@ -116,7 +116,7 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 				return
 			}
 		}
-		logf("failed to get target address: %v", err)
+		loge("failed to get target address: %v", err)
 		return
 	}
 
@@ -124,14 +124,14 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 	// log.Printf("web addr:%s", rc.LocalAddr())
 	// log.Printf("accept addr:%s", lc.RemoteAddr())
 	if err != nil {
-		logf("Connect to %s failed: %s", connecter.ServerHost(), err)
+		loge("Connect to %s failed: %s", connecter.ServerHost(), err)
 		return
 	}
 	defer rc.Close()
 
 	remoteConn := shadow(rc)
 	if _, err = remoteConn.Write(tgt); err != nil {
-		logf("failed to send target address: %v", err)
+		loge("failed to send target address: %v", err)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return // ignore i/o timeout
 		}
-		logf("relay error: %v", err)
+		loge("relay error: %v", err)
 	}
 }
 
@@ -151,23 +151,28 @@ func relay(left, right net.Conn) (int64, int64, error) {
 
 	// interval := 2 * time.Second
 	// heartTimer := time.NewTimer(interval)
-
+	var lastErr error
 	copyFunc := func(left net.Conn, right net.Conn) {
 		buf := make([]byte, 512*2)
+		var currentErr error
 		close := func() {
 			left.Close()
 			right.Close()
 			debug.FreeOSMemory()
+			if lastErr == nil {
+				lastErr = currentErr
+			}
 		}
+		defer close()
 		for {
 			n, err := left.Read(buf)
 			if err != nil {
-				close()
+				currentErr = err
 				return
 			}
 			n, err = right.Write(buf[:n])
 			if err != nil {
-				close()
+				currentErr = err
 				return
 			}
 		}
@@ -175,7 +180,11 @@ func relay(left, right net.Conn) (int64, int64, error) {
 	go copyFunc(left, right)
 	copyFunc(right, left)
 
-	return 0, 0, errors.New("closed")
+	if lastErr == nil {
+		lastErr = errors.New("closed")
+	}
+
+	return 0, 0, lastErr
 }
 
 func (c *Client) StopsocksConnLocal() error {

@@ -98,7 +98,7 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 	var err error
 	socksPc, err = net.ListenPacket("udp", laddr)
 	if err != nil {
-		logf("UDP local listen error: %v", err)
+		loge("UDP local listen error: %v", err)
 		return err
 	}
 	runningUPD = true
@@ -118,14 +118,14 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 				n, raddr, err := socksPc.ReadFrom(buf)
 
 				if err != nil {
-					logf("UDP local read error: %v", err)
+					loge("UDP local read error: %v", err)
 					continue
 				}
 				pc := nm.Get(raddr.String())
 				if pc == nil {
 					pc, err = connecter.DialPacketConn(&net.UDPAddr{})
 					if err != nil {
-						logf("UDP local listen error: %v", err)
+						loge("UDP local listen error: %v", err)
 						continue
 					}
 
@@ -136,7 +136,7 @@ func udpSocksLocal(laddr string, server net.Addr, connecter PcConnecter, shadow 
 				_, err = pc.WriteTo(buf[3:n], server)
 				// _, err = pc.WriteTo(payload, tgtUDPAddr)
 				if err != nil {
-					logf("UDP local write error: %v", err)
+					loge("UDP local write error: %v", err)
 					continue
 				}
 			}

@@ -111,9 +111,8 @@ func (ws *WSPacketConn) HandleWSConn(conn *websocket.Conn, remoteAddr net.Addr) 
 				len:        len(p),
 			}
 			packetCount += 1
-			var count = packetCount
 			runtime.SetFinalizer(pack, func(p *packet) {
-				logf("packetCount(%d),内存回收了", count)
+
 			})
 			runtime.GC()
 			debug.FreeOSMemory()
@@ -151,8 +150,6 @@ func logf(f string, v ...interface{}) {
 // ReadFrom can be made to time out and return
 // an Error with Timeout() == true after a fixed time limit;
 // see SetDeadline and SetReadDeadline.
-var readCount = 0
-var writeCount = 0
 
 func (ws *WSPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	if ws.closed {
@@ -171,9 +168,6 @@ func (ws *WSPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 		// ws.reader = nil
 		copy(p, packet.buff)
 
-		readCount += 1
-		logf("readCount1(%d),读取数据长度：%d", readCount, packet.len)
-		// log.Printf("readCount1(%d),读取数据长度：%d", readCount, packet.len)
 		return packet.len, packet.remoteAddr, nil
 	}
 }
@@ -213,8 +207,6 @@ func (ws *WSPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	conn := c.(*websocket.Conn)
 	log.Printf("Write to %s", addr.String())
 	err = conn.WriteMessage(websocket.BinaryMessage, p)
-	writeCount += 1
-	logf("writeCount(%d),读取数据长度：%d", writeCount, len(p))
 
 	return len(p), err
 }
