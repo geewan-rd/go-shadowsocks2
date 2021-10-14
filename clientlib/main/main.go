@@ -9,7 +9,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	shadowsocks2 "github.com/shadowsocks/go-shadowsocks2/clientlib"
+	ssStart "github.com/shadowsocks/go-shadowsocks2/clientlib/start"
 )
 
 var (
@@ -50,25 +50,47 @@ func traceMemStats() {
 func main() {
 	traceMemStats()
 	flag.Parse()
-	// h, p, _ := net.SplitHostPort(*addr)
-	// port, _ := strconv.Atoi(p)
-	// shadowsocks2.SetWSTimeout(5000)
-	// shadowsocks2.SetMaxConnCount(20)
-	// var jsons = map[string]interface{}{}
-	// jsons["server"] = "120.232.193.224"
-	// jsons["url"] = "/proxy"
-	// jsons["username"] = "042AlO6I35A59hz3"
-	// jsons["serverPort"] = 2052
-	// jsons["method"] = "aes-256-cfb"
-	// jsons["password"] = "Ml7704X8J2d5Ct22"
-	// jsons["localPort"] = 7777
-	// jsons["verbose"] = *verbose
-	// jsons["pprofPort"] = 6060
-	// dataType, _ := json.Marshal(jsons)
-	// isSuccess := shadowsocks2.StartWebsocketWithjson(dataType)
+
+	var j = `
+	{
+		"Proto": 1,
+		"Server": "cache-1558135236-proxy.tikvpn.in",
+		"Url": "/proxy",
+		"Username": "hEc88S9LHV1e0BUm",
+		"Port": 80,
+		"Method": "chacha20-ietf",
+		"Password": "FW98t2ARSLb607e0",
+		"Log": "",
+		"Verbose": true,
+		"MaxConnCount": 0,
+		"tag": 0,
+		"LocalPort": 7777,
+		"Mpx": 0
+	}
+	`
+	var j1 = `
+	{
+		"Proto": 1,
+		"Server": "cache-755568305-proxy.tikvpn.in",
+		"Url": "/proxy",
+		"Username": "OTT1wQ6135zvBZ8z",
+		"Port": 80,
+		"Method": "chacha20-ietf",
+		"Password": "m68jwjZHetuH1F6t",
+		"Log": "",
+		"Verbose": true,
+		"MaxConnCount": 0,
+		"tag": 0,
+		"LocalPort": 7778,
+		"Mpx": 0
+	}
+	`
+
 	log.Printf("%v", "s")
-	c := &shadowsocks2.SSClient{}
-	c.StartTCPUDP("92.223.65.196", 38967, "aes-256-cfb", "qSh1sXqVsY6n3I7Y", 7777, false)
+	ssStart.Start(j)
+	ssStart.Start(j1)
+
+	// c.StartWebsocket("cache-1558135236-proxy.tikvpn.in", "/proxy", "1x5e14h0YxDARaX4", 80, "chacha20-ietf", "8CCrl6B6B76oHHCw", 7777, true)
 	http.ListenAndServe("0.0.0.0:6060", nil)
 	for {
 		traceMemStats()
