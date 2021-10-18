@@ -194,12 +194,12 @@ func (c *SSClient) StartTCPUDP(server string, serverPort int, method string, pas
 	config := c.config
 	c.client = NewClient(config.MaxConnCount, config.UDPBufSize, config.UDPTimeout)
 	tcpConnecter := &TCPConnecter{}
-	TCPAddr, err := net.ResolveTCPAddr("tcp4", localIP+":0")
-	if err != nil {
-		logf("local addr failed: %s", err)
-		return err
-	}
-	tcpConnecter.localTCPAddr = TCPAddr
+	// TCPAddr, err := net.ResolveTCPAddr("tcp4", localIP+":0")
+	// if err != nil {
+	// 	logf("local addr failed: %s", err)
+	// 	return err
+	// }
+	// tcpConnecter.localTCPAddr = TCPAddr
 	tcpConnecter.ServerAddr = addr
 	stat.Reset()
 	tcpConnecter.Stat = stat

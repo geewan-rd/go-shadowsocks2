@@ -58,15 +58,14 @@ func Start(jsonS string) error {
 	if cf.Log != "" {
 		_ = shadowsocks2.SetlogOut(cf.Log)
 	}
-	if cf.LocalHost != "" {
-		shadowsocks2.SetSSWLocalIP(cf.LocalHost)
-		shadowsocks2.SetLocalIP(cf.LocalHost)
-	}
 
 	if cf.Proto == 0 {
 		clientProto[cf.Tag] = 0
 		return c.StartTCPUDP(cf.Server, cf.Port, cf.Method, cf.Password, cf.LocalPort, cf.Verbose)
 	} else {
+		if cf.LocalHost != "" {
+			shadowsocks2.SetSSWLocalIP(cf.LocalHost)
+		}
 		if cf.WSTimeout > 0 {
 			c.SetWSTimeout(cf.WSTimeout)
 		}

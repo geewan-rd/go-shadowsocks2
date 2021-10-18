@@ -23,7 +23,7 @@ func (tc *TCPConnecter) Connect() (net.Conn, error) {
 		if e != nil {
 			return nil, e
 		}
-		c, e = net.DialTCP("tcp4", tc.localTCPAddr, serverTCPAddr)
+		c, err = net.DialTCP("tcp4", tc.localTCPAddr, serverTCPAddr)
 	}
 	if err != nil {
 		return c, err
