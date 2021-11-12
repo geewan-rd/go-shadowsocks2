@@ -198,7 +198,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 		newPC.EnableStat(stat)
 		return newPC
 	}
-	udpAddr, err := net.ResolveUDPAddr("UDP", addr)
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
 	}
