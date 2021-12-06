@@ -42,13 +42,15 @@ var (
 
 var ERR_MPXFirstConnectionFail = errors.New("Connect Failed")
 
-func (c *SSClient) init() {
-	c.config = ssConfig{
+func NewSSClient() *SSClient {
+	ssc := SSClient{}
+	ssc.config = ssConfig{
 		Verbose:    true,
 		UDPTimeout: 10 * time.Second,
 		UDPBufSize: 64 * 1024,
 		WSTimeout:  10 * time.Second,
 	}
+	return &ssc
 }
 
 // SetlogOut 设置websocket timeout，单位 ms, 默认 10s
@@ -194,12 +196,12 @@ func (c *SSClient) StartTCPUDP(server string, serverPort int, method string, pas
 	config := c.config
 	c.client = NewClient(config.MaxConnCount, config.UDPBufSize, config.UDPTimeout)
 	tcpConnecter := &TCPConnecter{}
-	// TCPAddr, err := net.ResolveTCPAddr("tcp4", localIP+":0")
-	// if err != nil {
-	// 	logf("local addr failed: %s", err)
-	// 	return err
-	// }
-	// tcpConnecter.localTCPAddr = TCPAddr
+	TCPAddr, err := net.ResolveTCPAddr("tcp4", localIP+":0")
+	if err != nil {
+		logf("local addr failed: %s", err)
+		return err
+	}
+	tcpConnecter.localTCPAddr = TCPAddr
 	tcpConnecter.ServerAddr = addr
 	stat.Reset()
 	tcpConnecter.Stat = stat

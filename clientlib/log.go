@@ -1,7 +1,9 @@
 package shadowsocks2
 
 import (
+	"fmt"
 	"log"
+	"strings"
 )
 
 var (
@@ -11,8 +13,14 @@ var (
 
 func loge(s string, v ...interface{}) {
 	if logger != nil {
-		var f = "[ERROR] :" + s
-		logger.Printf(f, v...)
+		var newS = fmt.Sprintf(s, v...)
+		if strings.Contains(newS, "closed") {
+			return
+		} else if strings.Contains(newS, "no such host") {
+			newS = "Network is unreachable"
+		}
+		var f = "[ERROR] :" + newS
+		logger.Print(f)
 	}
 
 }

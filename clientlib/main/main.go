@@ -51,44 +51,58 @@ func main() {
 	traceMemStats()
 	flag.Parse()
 
-	var j = `
+	// var j = `
+	// {
+	// 	"Proto": 1,
+	// 	"Server": "cache-1558135236-proxy.tikvpn.in",
+	// 	"Url": "/proxy",
+	// 	"Username": "hEc88S9LHV1e0BUm",
+	// 	"Port": 80,
+	// 	"Method": "chacha20-ietf",
+	// 	"Password": "FW98t2ARSLb607e0",
+	// 	"Log": "",
+	// 	"Verbose": true,
+	// 	"MaxConnCount": 0,
+	// 	"tag": 0,
+	// 	"LocalPort": 7777,
+	// 	"Mpx": 0
+	// }
+	// `
+	// var j1 = `
+	// {
+	// 	"Proto": 1,
+	// 	"Server": "cache-755568305-proxy.tikvpn.in",
+	// 	"Url": "/proxy",
+	// 	"Username": "OTT1wQ6135zvBZ8z",
+	// 	"Port": 80,
+	// 	"Method": "chacha20-ietf",
+	// 	"Password": "m68jwjZHetuH1F6t",
+	// 	"Log": "",
+	// 	"Verbose": true,
+	// 	"MaxConnCount": 0,
+	// 	"tag": 0,
+	// 	"LocalPort": 7778,
+	// 	"Mpx": 0
+	// }
+	// `
+
+	var j2 = `
 	{
-		"Proto": 1,
-		"Server": "cache-1558135236-proxy.tikvpn.in",
-		"Url": "/proxy",
-		"Username": "hEc88S9LHV1e0BUm",
-		"Port": 80,
-		"Method": "chacha20-ietf",
-		"Password": "FW98t2ARSLb607e0",
-		"Log": "",
-		"Verbose": true,
-		"MaxConnCount": 0,
+		"proto": 0,
+		"verbose": true,
+		"maxConnCount": 0,
 		"tag": 0,
-		"LocalPort": 7777,
-		"Mpx": 0
-	}
-	`
-	var j1 = `
-	{
-		"Proto": 1,
-		"Server": "cache-755568305-proxy.tikvpn.in",
-		"Url": "/proxy",
-		"Username": "OTT1wQ6135zvBZ8z",
-		"Port": 80,
-		"Method": "chacha20-ietf",
-		"Password": "m68jwjZHetuH1F6t",
-		"Log": "",
-		"Verbose": true,
-		"MaxConnCount": 0,
-		"tag": 0,
-		"LocalPort": 7778,
-		"Mpx": 0
+		"localPort": 7778,
+		"server": "92.38.135.103",
+            "port": 45425,
+            "password": "cmZzFkmtra8T01l7",
+            "method": "aes-256-cfb"
 	}
 	`
 
 	log.Printf("%v", "s")
-	ssStart.Start(j)
-	ssStart.Start(j1)
+	ssStart.Start(j2)
+	// ssStart.Start(j1)
 
 	// c.StartWebsocket("cache-1558135236-proxy.tikvpn.in", "/proxy", "1x5e14h0YxDARaX4", 80, "chacha20-ietf", "8CCrl6B6B76oHHCw", 7777, true)
 	http.ListenAndServe("0.0.0.0:6060", nil)

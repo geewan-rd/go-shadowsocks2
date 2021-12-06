@@ -27,6 +27,7 @@ var j = `
 type SSConfig struct {
 	Proto        int    `json:"proto"`
 	Server       string `json:"server"`
+	Host         string `json:host`
 	Url          string `json:"url"`
 	Username     string `json:"username"`
 	Port         int    `json:"port"`
@@ -38,7 +39,7 @@ type SSConfig struct {
 	Tag          int    `json:"tag"`
 	LocalHost    string `json:"localHost"`
 	LocalPort    int    `json:"localPort"`
-	Mpx          bool   `json:"mpx"`
+	Mpx          bool   `json:"enableMpx"`
 	WSTimeout    int    `json:"wSTimeout"`
 }
 
@@ -52,7 +53,7 @@ func Start(jsonS string) error {
 	if err != nil {
 		return err
 	}
-	var c = &shadowsocks2.SSClient{}
+	var c = shadowsocks2.NewSSClient()
 	c.SetMaxConnCount(cf.MaxConnCount)
 	clientMap[cf.Tag] = c
 	if cf.Log != "" {
@@ -69,12 +70,17 @@ func Start(jsonS string) error {
 		if cf.WSTimeout > 0 {
 			c.SetWSTimeout(cf.WSTimeout)
 		}
+		host := cf.Host
+		if host == "" {
+			host = cf.Server
+		}
 		if !cf.Mpx {
 			clientProto[cf.Tag] = 1
-			return c.StartWebsocket(cf.Server, cf.Url, cf.Username, cf.Port, cf.Method, cf.Password, cf.LocalPort, cf.Verbose)
+			return c.StartWebsocket(host, cf.Url, cf.Username, cf.Port, cf.Method, cf.Password, cf.LocalPort, cf.Verbose)
 		} else {
 			clientProto[cf.Tag] = 2
-			return c.StartWebsocketMpx(cf.Server, cf.Url, cf.Username, cf.Port, cf.Method, cf.Password, cf.LocalPort, 0, cf.Verbose)
+
+			return c.StartWebsocketMpx(host, cf.Url, cf.Username, cf.Port, cf.Method, cf.Password, cf.LocalPort, 0, cf.Verbose)
 		}
 	}
 }
