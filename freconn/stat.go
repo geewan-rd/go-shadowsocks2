@@ -5,10 +5,11 @@ import (
 )
 
 type Stat struct {
-	Rx   uint64
-	Tx   uint64
-	in1  statStatus
-	in10 statStatus
+	Rx     uint64
+	Tx     uint64
+	in1    statStatus
+	in10   statStatus
+	isStop bool
 }
 
 type statStatus struct {
@@ -45,6 +46,7 @@ func NewStat() *Stat {
 			bandwidthRx: 0,
 			bandwidthTx: 0,
 		},
+		isStop: false,
 	}
 	go s.RunBandwidthIn1()
 	go s.RunBandwidthIn10()
@@ -52,9 +54,16 @@ func NewStat() *Stat {
 	return s
 }
 
+func (s *Stat) Stop() {
+	s.isStop = true
+}
+
 func (s *Stat) RunBandwidthIn1() {
 	ticker := time.NewTicker(time.Second)
 	for range ticker.C {
+		if s.isStop {
+			break
+		}
 		s.in1.bandwidthRx = s.Rx - s.in1.rx
 		s.in1.bandwidthTx = s.Tx - s.in1.tx
 		s.in1.rx = s.Rx
@@ -69,6 +78,9 @@ func (s *Stat) RunBandwidthIn1() {
 func (s *Stat) RunBandwidthIn10() {
 	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
+		if s.isStop {
+			break
+		}
 		s.in10.bandwidthRx = (s.Rx - s.in10.rx) / 10
 		s.in10.bandwidthTx = (s.Tx - s.in10.tx) / 10
 		s.in10.rx = s.Rx
@@ -106,4 +118,5 @@ func (s *Stat) Reset() {
 	s.Tx = 0
 	s.in1.Reset()
 	s.in10.Reset()
+	s.Stop()
 }

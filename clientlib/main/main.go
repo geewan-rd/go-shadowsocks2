@@ -68,58 +68,48 @@ func main() {
 	// 	"Mpx": 0
 	// }
 	// `
-	// var j1 = `
-	// {
-	// 	"Proto": 1,
-	// 	"Server": "cache-755568305-proxy.tikvpn.in",
-	// 	"Url": "/proxy",
-	// 	"Username": "OTT1wQ6135zvBZ8z",
-	// 	"Port": 80,
-	// 	"Method": "chacha20-ietf",
-	// 	"Password": "m68jwjZHetuH1F6t",
-	// 	"Log": "",
-	// 	"Verbose": true,
-	// 	"MaxConnCount": 0,
-	// 	"tag": 0,
-	// 	"LocalPort": 7778,
-	// 	"Mpx": 0
-	// }
-	// `
-
-	var j2 = `
+	var j1 = `
 	{
-		"proto": 0,
-		"verbose": true,
-		"maxConnCount": 0,
+		"Proto": 1,
+		"Server": "cache-1546028981-proxy.tikvpn.in",
+		"Url": "/proxy",
+		"Username": "6K635502mQmOmKLP",
+		"Port": 80,
+		"Method": "chacha20-ietf",
+		"Password": "LU03SrTvKp1Nz2ZN",
+		"Log": "",
+		"Verbose": true,
+		"MaxConnCount": 0,
 		"tag": 0,
-		"localPort": 7778,
-		"server": "92.38.135.103",
-            "port": 45425,
-            "password": "cmZzFkmtra8T01l7",
-            "method": "aes-256-cfb"
+		"LocalPort": 7778,
+		"Mpx": 0
 	}
 	`
 
-	log.Printf("%v", "s")
-	ssStart.Start(j2)
-	// ssStart.Start(j1)
+	// var j2 = `
+	// {
+	// 	"proto": 0,
+	// 	"verbose": true,
+	// 	"maxConnCount": 0,
+	// 	"tag": 0,
+	// 	"localPort": 7778,
+	// 	"server": "92.38.135.103",
+	//         "port": 49053,
+	//         "password": "0860mq5V28479LuS",
+	//         "method": "aes-256-cfb"
+	// }
+	// `
 
-	// c.StartWebsocket("cache-1558135236-proxy.tikvpn.in", "/proxy", "1x5e14h0YxDARaX4", 80, "chacha20-ietf", "8CCrl6B6B76oHHCw", 7777, true)
+	log.Printf("%v", "s")
+	ssStart.Start(j1)
+	// ssStart.Start(j1)
+	go func() {
+		time.Sleep(15 * time.Second)
+		ssStart.Stop(0)
+	}()
+
 	http.ListenAndServe("0.0.0.0:6060", nil)
-	for {
-		traceMemStats()
-		runtime.GC()
-		time.Sleep(1 * time.Second)
-		// resp, err := http.Get("http://www.baidu.com")
-		// if err != nil {
-		// 	myLog.Println("请求百度错误：", err)
-		// 	continue
-		// }
-		// if resp.StatusCode != 200 {
-		// 	myLog.Println("百度出现故障，code:", resp.StatusCode)
-		// 	continue
-		// }
-		// myLog.Println("百度运行正常")
-	}
+
+	//go tool pprof -http=:1234 http://localhost:6060/debug/pprof/goroutine
 
 }

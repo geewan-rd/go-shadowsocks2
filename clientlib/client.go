@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,9 +80,8 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 
 		defer func() {
 			c.mutex.Lock()
-			for _, con := range connArray {
-				con.Close()
-			}
+			connArray = make([]net.Conn, 0)
+			debug.FreeOSMemory()
 			c.mutex.Unlock()
 		}()
 		var connCount = 0
@@ -89,6 +90,9 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 			if err != nil {
 
 				loge("failed to accept: %s", err)
+				if strings.Contains(err.Error(), "closed") {
+					break
+				}
 				continue
 			}
 			var currnetIndex = 0
