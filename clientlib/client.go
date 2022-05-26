@@ -19,6 +19,13 @@ type Client struct {
 	udpTimeout       time.Duration
 	udpBufSize       int
 	connCount        int
+	udpServerAddr    net.Addr
+	connResetRLock   sync.RWMutex
+	connecter        Connecter
+	upgradeConn      shadowUpgradeConn
+	pcResetRLock     sync.RWMutex
+	pcConnect        PcConnecter
+	upgradePc        shadowUpgradePacketConn
 	mutex            sync.Mutex
 	ConnMap          sync.Map
 	ctx              context.Context
@@ -54,6 +61,8 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 		logf("failed to listen on %s: %v", addr, err)
 		return err
 	}
+	c.connecter = connecter
+	c.upgradeConn = shadow
 	go func() {
 		connCh := make(chan net.Conn)
 		defer close(connCh)
@@ -65,7 +74,7 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 						c.ConnMap.Store(lAddr, conn)
 						c.connCount++
 						// logf("Conn count++: %d", c.connCount)
-						c.handleConn(conn, connecter, shadow)
+						c.handleConn(conn)
 						c.connCount--
 						// logf("Conn count--: %d", c.connCount)
 						c.ConnMap.Delete(lAddr)
@@ -84,7 +93,7 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 			}
 			lc.(*net.TCPConn).SetKeepAlive(true)
 			if c.MaxConnCount == 0 {
-				go c.handleConn(lc, connecter, shadow)
+				go c.handleConn(lc)
 			} else {
 				if c.connCount >= c.MaxConnCount {
 					go func() {
@@ -125,7 +134,7 @@ func (c *Client) StartsocksConnLocal(addr string, connecter Connecter, shadow sh
 	return nil
 }
 
-func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgradeConn) {
+func (c *Client) handleConn(lc net.Conn) {
 	defer func() {
 		if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
 			runtime.GC()
@@ -133,6 +142,9 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 		}
 	}()
 	defer lc.Close()
+	if c.connecter == nil || c.upgradeConn == nil {
+		return
+	}
 	tgt, err := socks.Handshake(lc)
 	if err != nil {
 		// UDP: keep the connection until disconnect then free the UDP socket
@@ -151,21 +163,24 @@ func (c *Client) handleConn(lc net.Conn, connecter Connecter, shadow shadowUpgra
 		logf("failed to get target address: %v", err)
 		return
 	}
-	rc, err := connecter.Connect()
+	c.connResetRLock.RLock()
+	rc, err := c.connecter.Connect()
 	if err != nil {
-		logf("Connect to %s failed: %s", connecter.ServerHost(), err)
+		logf("Connect to %s failed: %s", c.connecter.ServerHost(), err)
+		c.connResetRLock.RUnlock()
 		return
 	}
 	defer rc.Close()
 
-	var remoteConn net.Conn
-	remoteConn = shadow(rc)
+	remoteConn := c.upgradeConn(rc)
 	if _, err = remoteConn.Write(tgt); err != nil {
 		logf("failed to send target address: %v", err)
+		c.connResetRLock.RUnlock()
 		return
 	}
+	logf("proxy %s <-> %s <-> %s", lc.RemoteAddr(), c.connecter.ServerHost(), tgt)
+	c.connResetRLock.RUnlock()
 
-	logf("proxy %s <-> %s <-> %s", lc.RemoteAddr(), connecter.ServerHost(), tgt)
 	_, _, err = relay(remoteConn, lc)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -187,6 +202,9 @@ func (c *Client) udpSocksLocal(laddr string, server net.Addr, connecter PcConnec
 		logf("UDP local listen error: %v", err)
 		return err
 	}
+	c.pcConnect = connecter
+	c.upgradePc = shadow
+	c.udpServerAddr = server
 	go func() {
 		defer c.UDPSocksPC.Close()
 
@@ -206,18 +224,19 @@ func (c *Client) udpSocksLocal(laddr string, server net.Addr, connecter PcConnec
 				}
 				pc := nm.Get(raddr.String())
 				if pc == nil {
-					pc, err = connecter.DialPacketConn(&net.UDPAddr{})
+					c.pcResetRLock.RLock()
+					pc, err = c.pcConnect.DialPacketConn(&net.UDPAddr{})
 					if err != nil {
 						logf("UDP local listen error: %v", err)
+						c.pcResetRLock.RUnlock()
 						continue
 					}
-					logf("UDP socks tunnel %s <-> %s <-> %s", laddr, server, socks.Addr(buf[3:]))
-					pc = shadow(pc)
+					logf("UDP socks tunnel %s <-> %s <-> %s", laddr, c.udpServerAddr, socks.Addr(buf[3:]))
+					pc = c.upgradePc(pc)
 					nm.Add(raddr, c.UDPSocksPC, pc, socksClient)
 				}
-
-				_, err = pc.WriteTo(buf[3:n], server)
-				// _, err = pc.WriteTo(payload, tgtUDPAddr)
+				_, err = pc.WriteTo(buf[3:n], c.udpServerAddr)
+				c.pcResetRLock.RUnlock()
 				if err != nil {
 					logf("UDP local write error: %v", err)
 					continue
@@ -246,4 +265,16 @@ func (c *Client) Stop() error {
 		}
 	}
 	return nil
+}
+
+func (c *Client) Reset(connecter Connecter, upgradeConn shadowUpgradeConn, UdpServerAddr net.Addr, pcConnect PcConnecter, upgradePc shadowUpgradePacketConn) {
+	c.connResetRLock.Lock()
+	c.pcResetRLock.Lock()
+	c.connecter = connecter
+	c.upgradeConn = upgradeConn
+	c.udpServerAddr = UdpServerAddr
+	c.pcConnect = pcConnect
+	c.upgradePc = upgradePc
+	c.connResetRLock.Unlock()
+	c.pcResetRLock.Unlock()
 }

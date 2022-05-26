@@ -209,6 +209,49 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	return nil
 }
 
+func ResetTCPUDP(server string, serverPort int, method string, password string, localPort int, verbose bool) error {
+	config.Verbose = verbose
+	var key []byte
+	if client == nil {
+		return errors.New("client is nil")
+	}
+	if server == "" || password == "" {
+		return errors.New("server, password can not be empty")
+	}
+	if serverPort <= 0 || serverPort > 65535 {
+		return errors.New("server port must be between 0 and 65535")
+	}
+	if localPort <= 0 || localPort > 65535 {
+		return errors.New("local port must be between 0 and 65535")
+	}
+
+	var err error
+	addr := fmt.Sprintf("%s:%d", server, serverPort)
+	cipher := method
+
+	ciph, err := core.PickCipher(cipher, key, password)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	socks.UDPEnabled = true
+	tcpConnecter.ServerAddr = addr
+	stat.Reset()
+	tcpConnecter.Stat = stat
+	upgradePC := func(pc net.PacketConn) net.PacketConn {
+		spc := ciph.PacketConn(pc)
+		newPC := freconn.UpgradePacketConn(spc)
+		newPC.EnableStat(stat)
+		return newPC
+	}
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		return err
+	}
+	client.Reset(tcpConnecter, ciph.StreamConn, udpAddr, &UDPConnecter{}, upgradePC)
+	return nil
+}
+
 // StopTCPUDP 停止SS
 func StopTCPUDP() (err error) {
 	stat.Reset()
