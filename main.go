@@ -71,6 +71,12 @@ func main() {
 		return
 	}
 
+	flags.Server = "ss://chacha20-ietf-poly1305:111111@:6667"
+	flags.Cipher = "chacha20-ietf-poly1305"
+	flags.Password = "111111"
+	flags.UDPSocks = true
+	config.Verbose = true
+
 	if flags.Client == "" && flags.Server == "" {
 		flag.Usage()
 		return

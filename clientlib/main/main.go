@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"runtime"
-	"time"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -71,12 +70,12 @@ func main() {
 	var j1 = `
 	{
 		"Proto": 1,
-		"Server": "cache-1546028981-proxy.tikvpn.in",
+		"Server": "cache-760752698-proxy.tikvpn.in",
 		"Url": "/proxy",
-		"Username": "6K635502mQmOmKLP",
+		"Username": "CWfPtG0eC0U12kN6",
 		"Port": 80,
-		"Method": "chacha20-ietf",
-		"Password": "LU03SrTvKp1Nz2ZN",
+		"Method": "aes-256-gcm",
+		"Password": "P2vX3355yyq99oUm",
 		"Log": "",
 		"Verbose": true,
 		"MaxConnCount": 0,
@@ -93,20 +92,20 @@ func main() {
 	// 	"maxConnCount": 0,
 	// 	"tag": 0,
 	// 	"localPort": 7778,
-	// 	"server": "92.38.135.103",
-	//         "port": 49053,
-	//         "password": "0860mq5V28479LuS",
-	//         "method": "aes-256-cfb"
+	// 	"server": "172.104.70.220",
+    //         "port": 41217,
+    //         "password": "I7W1Q9g00p5X0W2b",
+    //         "method": "chacha20-ietf-poly1305"
 	// }
 	// `
 
 	log.Printf("%v", "s")
 	ssStart.Start(j1)
 	// ssStart.Start(j1)
-	go func() {
-		time.Sleep(15 * time.Second)
-		ssStart.Stop(0)
-	}()
+	// go func() {
+	// 	time.Sleep(15 * time.Second)
+	// 	ssStart.Stop(0)
+	// }()
 
 	http.ListenAndServe("0.0.0.0:6060", nil)
 
