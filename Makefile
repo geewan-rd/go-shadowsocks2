@@ -43,7 +43,7 @@ build-android:
 build-ios:
 	rm -rf output/ios
 	mkdir -p output/ios
-	gomobile bind -target ios -o output/ios/shadowsocks.framework github.com/shadowsocks/go-shadowsocks2/clientlib
+	gomobile bind -target ios,macos -o output/ios/shadowsocks.xcframework github.com/shadowsocks/go-shadowsocks2/clientlib
 	cd output && zip -r shadowsocks_ios_${BUILD_VERSION}_${GIT_COMMIT_SHA1}.zip ios
 
 build-socks5test:
