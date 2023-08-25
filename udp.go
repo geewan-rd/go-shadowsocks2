@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"sync"
 
 	"github.com/shadowsocks/go-shadowsocks2/socks"
+
+	"github.com/miekg/dns"
 )
 
 type mode int
@@ -152,7 +155,19 @@ func udpRemote(addr string, shadow func(net.PacketConn) net.PacketConn) {
 			continue
 		}
 
+		logf("UDP remote %s -> %s \n", raddr, tgtAddr)
+
 		payload := buf[len(tgtAddr):n]
+		if strings.Contains(tgtAddr.String(), ":53") && len(payload) > 0 {
+			//获取payload的查询域名
+			msg := new(dns.Msg)
+			msg.Unpack(payload)
+			if len(msg.Question) > 0 {
+				domain := msg.Question[0].Name
+				logf("dns domain: %s", domain)
+			}
+
+		}
 
 		pc := nm.Get(raddr.String())
 		if pc == nil {

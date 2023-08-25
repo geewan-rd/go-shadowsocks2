@@ -70,7 +70,8 @@ func main() {
 		fmt.Println(base64.URLEncoding.EncodeToString(key))
 		return
 	}
-
+	flags.Server = "ss://AEAD_AES_256_GCM:111111@0.0.0.0:8488"
+	config.Verbose = true
 	if flags.Client == "" && flags.Server == "" {
 		flag.Usage()
 		return

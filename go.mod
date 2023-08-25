@@ -7,6 +7,7 @@ require (
 	github.com/fregie/mpx v0.2.3
 	github.com/gorilla/websocket v1.4.2
 	github.com/juju/ratelimit v1.0.1
+	github.com/miekg/dns v1.1.55 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
