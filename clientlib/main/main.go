@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"net"
 	"runtime"
-	"strconv"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -23,9 +21,8 @@ func init() {
 
 func main() {
 	flag.Parse()
-	h, p, _ := net.SplitHostPort(*addr)
-	port, _ := strconv.Atoi(p)
-	shadowsocks2.SetWSTimeout(5000)
-	shadowsocks2.StartWebsocketMpx(h, "/proxy", "fregie", port, "CHACHA20", "789632145", 1080, 2, *verbose)
+	// h, p, _ := net.SplitHostPort(*addr)
+	// port, _ := strconv.Atoi(p)
+	shadowsocks2.StartTCPUDP("tsp-relay", 41133, "aes-256-cfb", "1234", 1080, true, 1)
 	http.ListenAndServe("0.0.0.0:8080", nil)
 }

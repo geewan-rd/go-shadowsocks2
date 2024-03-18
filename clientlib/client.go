@@ -2,6 +2,7 @@ package shadowsocks2
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"net"
 	"runtime"
@@ -30,6 +31,7 @@ type Client struct {
 	ConnMap          sync.Map
 	ctx              context.Context
 	cancel           context.CancelFunc
+	outboundID       int
 }
 
 func NewClient(maxConnCount, UDPBufSize int, UDPTimeout time.Duration) *Client {
@@ -173,11 +175,21 @@ func (c *Client) handleConn(lc net.Conn) {
 	defer rc.Close()
 
 	remoteConn := c.upgradeConn(rc)
+	if client.outboundID != 0 {
+		transipInfoBytes := make([]byte, 4)
+		binary.BigEndian.PutUint16(transipInfoBytes[:2], uint16(client.outboundID))
+		if _, err = remoteConn.Write(transipInfoBytes); err != nil {
+			logf("failed to send transip Info: %v", err)
+			c.connResetRLock.RUnlock()
+			return
+		}
+	}
 	if _, err = remoteConn.Write(tgt); err != nil {
 		logf("failed to send target address: %v", err)
 		c.connResetRLock.RUnlock()
 		return
 	}
+
 	logf("proxy %s <-> %s <-> %s", lc.RemoteAddr(), c.connecter.ServerHost(), tgt)
 	c.connResetRLock.RUnlock()
 
@@ -217,7 +229,8 @@ func (c *Client) udpSocksLocal(laddr string, server net.Addr, connecter PcConnec
 				logf("exit udp\n")
 				return
 			default:
-				n, raddr, err := c.UDPSocksPC.ReadFrom(buf)
+				// 原数据从不发送接收到报文的前三个字节,但是transip要在数据前加上4个字节,所以跳过一个字节开始接收
+				n, raddr, err := c.UDPSocksPC.ReadFrom(buf[1:])
 				if err != nil {
 					logf("UDP local read error: %v", err)
 					continue
@@ -231,11 +244,14 @@ func (c *Client) udpSocksLocal(laddr string, server net.Addr, connecter PcConnec
 						c.pcResetRLock.RUnlock()
 						continue
 					}
-					logf("UDP socks tunnel %s <-> %s <-> %s", laddr, c.udpServerAddr, socks.Addr(buf[3:]))
+					logf("UDP socks tunnel %s <-> %s <-> %s", laddr, c.udpServerAddr, socks.Addr(buf[4:]))
 					pc = c.upgradePc(pc)
 					nm.Add(raddr, c.UDPSocksPC, pc, socksClient)
 				}
-				_, err = pc.WriteTo(buf[3:n], c.udpServerAddr)
+				transipInfoBytes := make([]byte, 4)
+				binary.BigEndian.PutUint16(transipInfoBytes[:2], uint16(client.outboundID))
+				copy(buf, transipInfoBytes)
+				_, err = pc.WriteTo(buf[:n+1], c.udpServerAddr)
 				c.pcResetRLock.RUnlock()
 				if err != nil {
 					logf("UDP local write error: %v", err)

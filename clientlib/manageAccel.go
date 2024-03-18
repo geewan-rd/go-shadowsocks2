@@ -156,7 +156,7 @@ func StartTCPtunnel(server string, serverPort int, method string, password strin
 }
 
 // StartTCPUDP 启动SS(TCP和UDP)
-func StartTCPUDP(server string, serverPort int, method string, password string, localPort int, verbose bool) error {
+func StartTCPUDP(server string, serverPort int, method string, password string, localPort int, verbose bool, outboundID int) error {
 	config.Verbose = verbose
 	var key []byte
 	if server == "" || password == "" {
@@ -182,6 +182,7 @@ func StartTCPUDP(server string, serverPort int, method string, password string, 
 	socks.UDPEnabled = true
 	localAddr := fmt.Sprintf("%s:%d", "0.0.0.0", localPort)
 	client = NewClient(config.MaxConnCount, config.UDPBufSize, config.UDPTimeout)
+	client.outboundID = outboundID
 	tcpConnecter.ServerAddr = addr
 	stat.Reset()
 	tcpConnecter.Stat = stat
