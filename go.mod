@@ -9,7 +9,7 @@ require (
 	github.com/juju/ratelimit v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
-	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
 
